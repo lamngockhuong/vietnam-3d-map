@@ -10,7 +10,8 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "preprocess": "tsx scripts/preprocess-geojson.ts"
+    "preprocess": "tsx scripts/preprocess-geojson.ts",
+    "preprocess:wards": "tsx scripts/preprocess-wards.ts"
   },
   "keywords": [
     "vietnam",

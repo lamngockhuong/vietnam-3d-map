@@ -19,11 +19,15 @@ pnpm start
 
 # Regenerate province data from GeoJSON (if source changes)
 pnpm preprocess
+
+# Regenerate ward data from GeoJSON
+pnpm preprocess:wards
 ```
 
 ## Features
 
 - **3D Province Map**: All 63 Vietnamese provinces with accurate boundaries
+- **Ward-Level Detail**: Click any province to view its wards/communes (3,321 wards across 34 provinces)
 - **Animated Ocean**: GLSL shader-based water with caustics and wave effects
 - **Island Territories**: Hoàng Sa (Paracel) and Trường Sa (Spratly) with markers
 - **Interactive Controls**: Mouse drag, scroll zoom, touch gestures, keyboard shortcuts
@@ -38,6 +42,8 @@ pnpm preprocess
 |-------|--------|
 | Mouse drag | Rotate map |
 | Scroll wheel | Zoom in/out |
+| Click province | View wards |
+| Back button | Return to provinces |
 | Touch drag | Rotate (mobile) |
 | Two-finger drag | Rotate (trackpad) |
 | Pinch gesture | Zoom (mobile/trackpad) |
@@ -57,6 +63,7 @@ src/
 │   ├── map/                    # 3D map components
 │   │   ├── VietnamMap.tsx      # Canvas & scene setup
 │   │   ├── Provinces.tsx       # 63 province geometries
+│   │   ├── Wards.tsx           # Ward-level geometries (lazy-loaded)
 │   │   ├── Ocean.tsx           # Animated water shader
 │   │   ├── CameraController.tsx # Interaction handling
 │   │   └── ...
@@ -67,15 +74,20 @@ src/
 │   │   └── ...
 │   └── providers/              # Context providers (i18n, etc)
 ├── hooks/                      # Custom React hooks
-├── data/                       # Province types & loaders
+├── data/                       # Province/ward types & loaders
 ├── i18n/                       # Translations (VI/EN)
 ├── shaders/                    # GLSL shader files
 ├── types/                      # TypeScript definitions
 └── utils/                      # Helper functions
 public/
-└── provinces.json              # Preprocessed province data (~800 KB)
+├── provinces.json              # Preprocessed province data (~800 KB)
+└── wards/                      # Ward data by province (~9.4 MB total)
+    ├── 01.json                 # Hà Nội wards
+    ├── 79.json                 # TP. Hồ Chí Minh wards
+    └── ...                     # 34 province ward files
 data/
-└── vietnam-provinces.geojson   # Source GeoJSON (32 MB, not in build)
+├── vietnam-provinces.geojson   # Source GeoJSON (32 MB, not in build)
+└── vietnam-wards.geojson       # Source GeoJSON (276 MB, git ignored)
 docs/
 ├── project-overview-pdr.md     # Vision, goals, requirements
 ├── system-architecture.md      # Architecture & pipelines
@@ -95,10 +107,10 @@ docs/
 ## Architecture Highlights
 
 - **Client-Side Only**: Full WebGL rendering in browser (no SSR for Canvas)
-- **Data Pipeline**: GeoJSON → Douglas-Peucker simplification → 97.6% reduction (32 MB → 800 KB)
+- **Data Pipeline**: GeoJSON → Douglas-Peucker simplification → 93-97% reduction
+- **Lazy Loading**: Province data (800 KB) loaded on init; ward data loaded on-demand per province
 - **i18n System**: Locale routing `/vi` and `/en` with type-safe dictionaries
 - **Performance**: 60 FPS on modern browsers, ~3-5s load time on 4G
-- **Lazy Loading**: Provinces data loaded async; 800 KB JSON fetched post-initial render
 
 ## Documentation
 
@@ -115,11 +127,16 @@ See `/docs` directory for comprehensive documentation:
 |------|---------|
 | `src/components/MapWrapper.tsx` | Main wrapper with province preloading |
 | `src/components/map/VietnamMap.tsx` | R3F Canvas + scene setup |
-| `src/components/map/Provinces.tsx` | 63 ExtrudeGeometry meshes |
+| `src/components/map/Provinces.tsx` | 63 ExtrudeGeometry meshes with click handler |
+| `src/components/map/Wards.tsx` | Ward geometries (lazy-loaded on click) |
 | `src/components/map/CameraController.tsx` | Interaction & camera animation |
+| `src/data/provinces-data.ts` | Province types and loader |
+| `src/data/wards-data.ts` | Ward types and lazy loader |
 | `src/i18n/dictionaries.ts` | Vietnamese & English translations |
-| `scripts/preprocess-geojson.ts` | Data preprocessing script |
+| `scripts/preprocess-geojson.ts` | Province data preprocessing |
+| `scripts/preprocess-wards.ts` | Ward data preprocessing |
 | `public/provinces.json` | Preprocessed province data |
+| `public/wards/*.json` | Preprocessed ward data (per province) |
 
 ## Browser Support
 
@@ -139,11 +156,12 @@ See `/docs` directory for comprehensive documentation:
 
 ## Development
 
-### TypeScript & ESLint
+### Linting & Formatting (Biome)
 
 ```bash
-pnpm lint              # Run ESLint
-pnpm type-check        # TypeScript type checking
+pnpm lint              # Run Biome linter
+pnpm format            # Run Biome formatter
+pnpm check             # Run both lint and format
 ```
 
 ### Data Updates
@@ -152,6 +170,13 @@ If you update `data/vietnam-provinces.geojson`:
 
 ```bash
 pnpm preprocess        # Regenerate public/provinces.json
+pnpm build             # Rebuild for production
+```
+
+If you update `data/vietnam-wards.geojson`:
+
+```bash
+pnpm preprocess:wards  # Regenerate public/wards/*.json
 pnpm build             # Rebuild for production
 ```
 

@@ -9,10 +9,13 @@ Interactive 3D map of Vietnam built with Next.js 16, React Three Fiber, and Thre
 ## Commands
 
 ```bash
-pnpm dev          # Start dev server with Turbopack (http://localhost:3000)
-pnpm build        # Production build
-pnpm lint         # ESLint
-pnpm preprocess   # Regenerate province data from GeoJSON (if source data changes)
+pnpm dev              # Start dev server with Turbopack (http://localhost:3000)
+pnpm build            # Production build
+pnpm lint             # Biome linter
+pnpm format           # Biome formatter
+pnpm check            # Biome lint + format
+pnpm preprocess       # Regenerate province data from GeoJSON
+pnpm preprocess:wards # Regenerate ward data from GeoJSON
 ```
 
 ## Architecture
@@ -23,9 +26,10 @@ The 3D map uses client-side only rendering due to Three.js WebGL requirements:
 
 1. **MapWrapper** (`src/components/MapWrapper.tsx`) - Client Component that dynamically imports VietnamMap with `ssr: false`
 2. **VietnamMap** (`src/components/map/VietnamMap.tsx`) - React Three Fiber Canvas with scene setup, lighting, and post-processing
-3. **Provinces** (`src/components/map/Provinces.tsx`) - Renders 63 provinces using Three.js ExtrudeGeometry with raycasting for hover detection
-4. **Ocean** (`src/components/map/Ocean.tsx`) - Custom GLSL shader for animated water with depth gradient, caustics, and specular highlights
-5. **CameraController** (`src/components/map/CameraController.tsx`) - OrbitControls with custom zoom-to-cursor, trackpad gestures, and hand gesture integration
+3. **Provinces** (`src/components/map/Provinces.tsx`) - Renders 63 provinces using Three.js ExtrudeGeometry with raycasting for hover/click detection
+4. **Wards** (`src/components/map/Wards.tsx`) - Renders ward-level boundaries when a province is clicked (lazy-loaded)
+5. **Ocean** (`src/components/map/Ocean.tsx`) - Custom GLSL shader for animated water with depth gradient, caustics, and specular highlights
+6. **CameraController** (`src/components/map/CameraController.tsx`) - OrbitControls with custom zoom-to-cursor, trackpad gestures, and hand gesture integration
 
 ### i18n System
 
@@ -36,13 +40,20 @@ The 3D map uses client-side only rendering due to Three.js WebGL requirements:
 
 ### Data Pipeline
 
-Province boundary data flows:
+**Province Data:**
 
-1. Source: `data/vietnam-provinces.geojson` (raw GeoJSON)
+1. Source: `data/vietnam-provinces.geojson` (raw GeoJSON, 32 MB)
 2. Preprocessing: `scripts/preprocess-geojson.ts` applies Douglas-Peucker simplification
-3. Output: `src/data/provinces-data.ts` (~2.5MB TypeScript with polygon coordinates)
+3. Output: `public/provinces.json` (~800 KB) + `src/data/provinces-data.ts` (types)
 
-The preprocessing script reduces polygon complexity while maintaining visual accuracy (~200m tolerance).
+**Ward Data:**
+
+1. Source: `data/vietnam-wards.geojson` (raw GeoJSON, 276 MB - git ignored)
+2. Preprocessing: `scripts/preprocess-wards.ts` groups by province, applies simplification
+3. Output: `public/wards/{provinceId}.json` (34 files, ~9.4 MB total)
+4. Loaded on-demand when user clicks a province
+
+The preprocessing scripts reduce polygon complexity (93-97% reduction) while maintaining visual accuracy.
 
 ### Hand Tracking System
 
@@ -54,6 +65,8 @@ The preprocessing script reduces polygon complexity while maintaining visual acc
 ### Key Type Definitions
 
 - `ProvinceData` - Province with id, name, type, area, population, density, center, polygons
+- `WardData` - Ward with id, name, type, area, population, density, center, polygons
+- `ProvinceWardsData` - Container for province wards (provinceId, provinceName, wards[])
 - `HandGestureState` - Gesture type, rotation/zoom deltas, hand position
 - `Dictionary` - i18n structure for all UI text
 - `MapCenter`, `Bounds`, `Coordinate` - Geographic types in `src/types/index.ts`
