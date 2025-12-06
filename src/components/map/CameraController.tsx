@@ -82,7 +82,7 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
         // Calculate new distance
         const currentDistance = controls.getDistance();
         const zoomFactor = zoomIn ? 1 - zoomAmount : 1 + zoomAmount;
-        const newDistance = Math.max(1, Math.min(10, currentDistance * zoomFactor));
+        const newDistance = Math.max(0.3, Math.min(10, currentDistance * zoomFactor));
 
         // Apply zoom
         const direction = new THREE.Vector3()
@@ -358,7 +358,7 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
         } else if (gestureState.zoomDelta !== 0) {
           // Fallback to center zoom if no hand position
           targetRef.current.distance = Math.max(
-            1,
+            0.3,
             Math.min(10, targetRef.current.distance - gestureState.zoomDelta * 2),
           );
         }
@@ -406,7 +406,7 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
         enableZoom={false} // Disable default zoom, we handle it with custom wheel handler
         enablePan={true}
         panSpeed={0.8}
-        minDistance={1}
+        minDistance={0.3}
         maxDistance={10}
         maxPolarAngle={Math.PI / 2.1}
       />
