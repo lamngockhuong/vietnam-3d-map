@@ -1,17 +1,16 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { type Locale, locales } from '@/i18n/config';
+import { type Locale } from '@/i18n/config';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface LanguageSwitcherProps {
   currentLocale: Locale;
 }
-
-// Compact locale labels
-const localeLabels: Record<Locale, string> = {
-  vi: 'VI',
-  en: 'EN',
-};
 
 const localeFullNames: Record<Locale, string> = {
   vi: 'Tiếng Việt',
@@ -22,28 +21,52 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const switchLocale = (newLocale: Locale) => {
+  const toggleLocale = () => {
+    const newLocale = currentLocale === 'vi' ? 'en' : 'vi';
     const segments = pathname.split('/');
     segments[1] = newLocale;
     router.push(segments.join('/'));
   };
 
+  const isVietnamese = currentLocale === 'vi';
+
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-xl p-1.5 shadow-lg border border-gray-100 flex gap-1">
-      {locales.map((locale) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
         <button
-          key={locale}
-          onClick={() => switchLocale(locale)}
-          className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-            currentLocale === locale
-              ? 'bg-gray-800 text-white shadow-sm'
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-          }`}
-          title={localeFullNames[locale]}
+          onClick={toggleLocale}
+          className="relative bg-white/90 backdrop-blur-md shadow-lg border border-gray-100 rounded-full flex items-center cursor-pointer transition-all hover:shadow-xl"
+          style={{ width: '72px', height: '36px', padding: '3px' }}
         >
-          {localeLabels[locale]}
+          {/* Sliding indicator */}
+          <span
+            className="absolute bg-gray-800 rounded-full transition-all duration-300 ease-in-out"
+            style={{
+              width: '30px',
+              height: '30px',
+              left: isVietnamese ? '3px' : '39px',
+            }}
+          />
+          {/* Labels */}
+          <span
+            className={`relative z-10 flex-1 text-xs font-semibold text-center transition-colors duration-300 ${
+              isVietnamese ? 'text-white' : 'text-gray-500'
+            }`}
+          >
+            VI
+          </span>
+          <span
+            className={`relative z-10 flex-1 text-xs font-semibold text-center transition-colors duration-300 ${
+              !isVietnamese ? 'text-white' : 'text-gray-500'
+            }`}
+          >
+            EN
+          </span>
         </button>
-      ))}
-    </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        {localeFullNames[currentLocale === 'vi' ? 'en' : 'vi']}
+      </TooltipContent>
+    </Tooltip>
   );
 }
