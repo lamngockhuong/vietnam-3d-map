@@ -21,6 +21,6 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Match all paths except _next, api, static files, and public assets
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.json$|.*\\.html$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg|api|.*\\.json$|.*\\.html$|.*\\.svg$).*)',
   ],
 };
