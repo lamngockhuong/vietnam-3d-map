@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { VietnamMapRef } from '@/components/map/VietnamMap';
 import { Controls } from '@/components/ui/Controls';
 import { HandTrackingVideo } from '@/components/ui/HandTrackingVideo';
+import { Legend } from '@/components/ui/Legend';
 import { loadProvinces, type ProvinceData } from '@/data/provinces-data';
 import type { HandGestureState } from '@/hooks/useHandTracking';
 import type { Dictionary } from '@/i18n/dictionaries';
@@ -36,6 +37,7 @@ export function MapWrapper({ dict }: MapWrapperProps) {
   const [gestureState, setGestureState] = useState<HandGestureState | null>(null);
   const [provinces, setProvinces] = useState<ProvinceData[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isWardMode, setIsWardMode] = useState(false);
   const mapRef = useRef<VietnamMapRef>(null);
 
   // Preload provinces data at wrapper level
@@ -66,6 +68,10 @@ export function MapWrapper({ dict }: MapWrapperProps) {
     mapRef.current?.resetCamera();
   }, []);
 
+  const handleWardModeChange = useCallback((wardMode: boolean) => {
+    setIsWardMode(wardMode);
+  }, []);
+
   // Show loading until provinces are ready
   if (isLoading || !provinces) {
     return (
@@ -83,7 +89,13 @@ export function MapWrapper({ dict }: MapWrapperProps) {
 
   return (
     <>
-      <VietnamMap ref={mapRef} dict={dict} gestureState={gestureState} provinces={provinces} />
+      <VietnamMap
+        ref={mapRef}
+        dict={dict}
+        gestureState={gestureState}
+        provinces={provinces}
+        onWardModeChange={handleWardModeChange}
+      />
 
       {/* Hand Tracking Video */}
       <HandTrackingVideo
@@ -92,15 +104,22 @@ export function MapWrapper({ dict }: MapWrapperProps) {
         onGestureChange={handleGestureChange}
       />
 
-      {/* Controls Panel - increased margins */}
-      <div className="fixed bottom-8 left-8 z-10">
+      {/* Legend Panel - hidden in ward mode */}
+      {!isWardMode && (
+        <div className="fixed top-20 sm:top-28 left-3 sm:left-8 z-10">
+          <Legend dict={dict} />
+        </div>
+      )}
+
+      {/* Controls Panel */}
+      <div className="fixed bottom-3 sm:bottom-8 left-3 sm:left-8 z-10">
         <Controls dict={dict} onResetCamera={handleResetCamera} />
       </div>
 
-      {/* Toggle Hand Tracking Button - positioned next to language switcher */}
+      {/* Toggle Hand Tracking Button - hidden on mobile, positioned next to language switcher */}
       <button
         onClick={toggleHandTracking}
-        className={`fixed top-8 right-[88px] z-10 w-11 h-11 rounded-xl shadow-lg border transition-all flex items-center justify-center ${
+        className={`hidden sm:flex fixed top-4 sm:top-8 right-[90px] sm:right-[110px] z-10 w-11 h-11 rounded-xl shadow-lg border transition-all items-center justify-center ${
           handTrackingEnabled
             ? 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700'
             : 'bg-white/90 backdrop-blur-md text-gray-600 border-gray-100 hover:bg-white hover:shadow-xl'

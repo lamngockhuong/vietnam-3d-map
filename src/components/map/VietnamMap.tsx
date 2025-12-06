@@ -39,6 +39,7 @@ interface VietnamMapProps {
   gestureState?: HandGestureState | null;
   provinces: ProvinceData[];
   showLabels?: boolean;
+  onWardModeChange?: (isWardMode: boolean) => void;
 }
 
 function Lights() {
@@ -93,7 +94,7 @@ function formatPopulation(pop: number): string {
 }
 
 export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function VietnamMap(
-  { dict, gestureState, provinces, showLabels = true },
+  { dict, gestureState, provinces, showLabels = true, onWardModeChange },
   ref,
 ) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
@@ -115,6 +116,11 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  // Notify parent when ward mode changes
+  useEffect(() => {
+    onWardModeChange?.(selectedProvince !== null);
+  }, [selectedProvince, onWardModeChange]);
+
   // Expose reset camera function
   useImperativeHandle(
     ref,
@@ -131,7 +137,7 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
       if (province) {
         setTooltip({
           name: province.name,
-          info: `${province.type} | ${dict.provinces.population}: ${formatPopulation(province.population)} | ${dict.provinces.area}: ${province.area.toLocaleString('vi-VN')} km²`,
+          info: `${province.type}  •  ${dict.provinces.population}: ${formatPopulation(province.population)}  •  ${dict.provinces.area}: ${province.area.toLocaleString('vi-VN')} km²`,
         });
       } else {
         setTooltip(null);
@@ -157,7 +163,7 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
       if (ward) {
         setTooltip({
           name: ward.name,
-          info: `${ward.type} | ${dict.provinces.population}: ${formatPopulation(ward.population)} | ${dict.provinces.area}: ${ward.area.toLocaleString('vi-VN')} km²`,
+          info: `${ward.type}  •  ${dict.provinces.population}: ${formatPopulation(ward.population)}  •  ${dict.provinces.area}: ${ward.area.toLocaleString('vi-VN')} km²`,
         });
       } else {
         setTooltip(null);
@@ -305,14 +311,19 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          className="fixed z-50 bg-black/85 backdrop-blur-sm rounded-xl border border-white/20 pointer-events-none transform -translate-x-1/2 -translate-y-full shadow-xl"
           style={{
             left: mousePos.x,
-            top: mousePos.y - 10,
+            top: mousePos.y - 12,
+            padding: '5px 10px',
           }}
         >
-          <div className="text-white font-semibold text-sm whitespace-nowrap">{tooltip.name}</div>
-          <div className="text-white/70 text-xs whitespace-nowrap">{tooltip.info}</div>
+          <div className="text-vietnam-yellow font-semibold text-sm whitespace-nowrap mb-1.5">
+            {tooltip.name}
+          </div>
+          <div className="text-white/80 text-xs whitespace-nowrap tracking-wide">
+            {tooltip.info}
+          </div>
         </div>
       )}
     </div>
