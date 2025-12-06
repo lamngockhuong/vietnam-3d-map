@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Vietnam 3D Holographic Map</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #000810;
+            overflow: hidden;
+            color: #00ffff;
+        }
+        
+        #app {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* Loading Screen */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #001a2c 0%, #000810 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease-out;
+        }
+        
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loader-ring {
+            width: 120px;
+            height: 120px;
+            border: 3px solid transparent;
+            border-top: 3px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: relative;
+        }
+        
+        .loader-ring::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            border: 3px solid transparent;
+            border-top: 3px solid #ff00ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite reverse;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        #loading h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-top: 30px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #00ffff, #ff00ff, #00ffff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+        }
+        
+        @keyframes shimmer {
+            to { background-position: 200% center; }
+        }
+        
+        #loading-status {
+            font-size: 0.9rem;
+            margin-top: 15px;
+            opacity: 0.7;
+            letter-spacing: 2px;
+        }
+        
+        /* Main Canvas */
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        /* Video Feed */
+        #video-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 240px;
+            height: 180px;
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0, 20, 40, 0.8);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3),
+                        inset 0 0 20px rgba(0, 255, 255, 0.1);
+            z-index: 100;
+        }
+        
+        #video-container::before {
+            content: 'CAMERA FEED';
+            position: absolute;
+            top: 8px;
+            left: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            color: rgba(0, 255, 255, 0.7);
+            z-index: 2;
+        }
+        
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        #hand-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+        
+        /* HUD Elements */
+        .hud {
+            position: fixed;
+            font-family: 'Orbitron', sans-serif;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        #title-hud {
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        
+        #title-hud h1 {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8),
+                         0 0 40px rgba(0, 255, 255, 0.4);
+            margin-bottom: 8px;
+        }
+        
+        #title-hud .subtitle {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 4px;
+            opacity: 0.6;
+            text-transform: uppercase;
+        }
+        
+        /* Gesture Status */
+        #gesture-status {
+            bottom: 220px;
+            right: 20px;
+            width: 240px;
+            background: rgba(0, 20, 40, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #gesture-status h3 {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            color: rgba(0, 255, 255, 0.7);
+        }
+        
+        .gesture-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+        }
+        
+        .gesture-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        
+        .gesture-label {
+            flex: 1;
+            opacity: 0.7;
+        }
+        
+        .gesture-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            color: #ff00ff;
+        }
+        
+        #current-gesture {
+            font-size: 1rem;
+            color: #00ff88;
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        /* Info Panel */
+        #info-panel {
+            top: 30px;
+            left: 30px;
+            background: rgba(0, 20, 40, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+        }
+        
+        #info-panel h3 {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            color: rgba(0, 255, 255, 0.7);
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+        }
+        
+        .info-row .label {
+            opacity: 0.6;
+        }
+        
+        .info-row .value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            color: #00ffff;
+        }
+        
+        /* Instructions */
+        #instructions {
+            bottom: 30px;
+            left: 30px;
+            background: rgba(0, 20, 40, 0.7);
+            border: 1px solid rgba(255, 0, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            max-width: 280px;
+        }
+        
+        #instructions h3 {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            color: rgba(255, 0, 255, 0.7);
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: flex-start;
+            margin: 10px 0;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .instruction-item .icon {
+            margin-right: 12px;
+            font-size: 1.2rem;
+        }
+        
+        /* Corner decorations */
+        .corner {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            pointer-events: none;
+            z-index: 40;
+        }
+        
+        .corner-tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+        .corner-tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+        .corner-br { bottom: 0; right: 0; border-left: none; border-top: none; }
+        
+        /* Scan lines overlay */
+        #scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1) 0px,
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.3;
+        }
+        
+        /* Permission button */
+        #start-btn {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            padding: 20px 50px;
+            background: transparent;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        
+        #start-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+        
+        #start-btn.hidden {
+            display: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #title-hud h1 {
+                font-size: 1.2rem;
+                letter-spacing: 4px;
+            }
+            
+            #video-container {
+                width: 160px;
+                height: 120px;
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            #gesture-status {
+                width: 160px;
+                bottom: 140px;
+                right: 10px;
+                padding: 10px;
+            }
+            
+            #info-panel, #instructions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading">
+            <div class="loader-ring"></div>
+            <h1>Vietnam 3D Map</h1>
+            <p id="loading-status">Initializing systems...</p>
+        </div>
+        
+        <!-- Start Button -->
+        <button id="start-btn">Bắt đầu</button>
+        
+        <!-- 3D Canvas -->
+        <div id="canvas-container"></div>
+        
+        <!-- Scan lines effect -->
+        <div id="scanlines"></div>
+        
+        <!-- Corner decorations -->
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+        
+        <!-- HUD Elements -->
+        <div class="hud" id="title-hud">
+            <h1>Việt Nam</h1>
+            <div class="subtitle">Bao gồm Hoàng Sa & Trường Sa</div>
+        </div>
+        
+        <div class="hud" id="info-panel">
+            <h3>MAP DATA</h3>
+            <div class="info-row">
+                <span class="label">Zoom Level</span>
+                <span class="value" id="zoom-value">1.0x</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Rotation X</span>
+                <span class="value" id="rot-x">0°</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Rotation Y</span>
+                <span class="value" id="rot-y">0°</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Hands Detected</span>
+                <span class="value" id="hands-count">0</span>
+            </div>
+        </div>
+        
+        <div class="hud" id="instructions">
+            <h3>GESTURE CONTROLS</h3>
+            <div class="instruction-item">
+                <span class="icon">🤏</span>
+                <span>Pinch để zoom in/out</span>
+            </div>
+            <div class="instruction-item">
+                <span class="icon">✋</span>
+                <span>Mở bàn tay + di chuyển để xoay</span>
+            </div>
+            <div class="instruction-item">
+                <span class="icon">👊</span>
+                <span>Nắm tay để reset view</span>
+            </div>
+            <div class="instruction-item">
+                <span class="icon">✌️</span>
+                <span>Victory để toggle wireframe</span>
+            </div>
+        </div>
+        
+        <div class="hud" id="gesture-status">
+            <h3>GESTURE RECOGNITION</h3>
+            <div class="gesture-item">
+                <span class="gesture-icon">👆</span>
+                <span class="gesture-label">Pinch Distance</span>
+                <span class="gesture-value" id="pinch-dist">--</span>
+            </div>
+            <div class="gesture-item">
+                <span class="gesture-icon">🖐️</span>
+                <span class="gesture-label">Palm Position</span>
+                <span class="gesture-value" id="palm-pos">--</span>
+            </div>
+            <div id="current-gesture">Waiting for hands...</div>
+        </div>
+        
+        <!-- Video Feed -->
+        <div id="video-container">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="hand-canvas"></canvas>
+        </div>
+    </div>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
+    
+    <script>
+        // ============================================
+        // VIETNAM 3D HOLOGRAPHIC MAP
+        // with Hand Gesture Control
+        // ============================================
+        
+        // Vietnam GeoJSON coordinates from Natural Earth dataset
+        // This is the accurate official boundary of Vietnam
+        const VIETNAM_COORDS = [
+            [108.05018, 21.55238],
+            [106.715068, 20.696851],
+            [105.881682, 19.75205],
+            [105.662006, 19.058165],
+            [106.426817, 18.004121],
+            [107.361954, 16.697457],
+            [108.269495, 16.079742],
+            [108.877107, 15.276691],
+            [109.33527, 13.426028],
+            [109.200136, 11.666859],
+            [108.36613, 11.008321],
+            [107.220929, 10.364484],
+            [106.405113, 9.53084],
+            [105.158264, 8.59976],
+            [104.795185, 9.241038],
+            [105.076202, 9.918491],
+            [104.334335, 10.486544],
+            [105.199915, 10.88931],
+            [106.24967, 10.961812],
+            [105.810524, 11.567615],
+            [107.491403, 12.337206],
+            [107.614548, 13.535531],
+            [107.382727, 14.202441],
+            [107.564525, 15.202173],
+            [107.312706, 15.908538],
+            [106.556008, 16.604284],
+            [105.925762, 17.485315],
+            [105.094598, 18.666975],
+            [103.896532, 19.265181],
+            [104.183388, 19.624668],
+            [104.822574, 19.886642],
+            [104.435, 20.758733],
+            [103.203861, 20.766562],
+            [102.754896, 21.675137],
+            [102.170436, 22.464753],
+            [102.706992, 22.708795],
+            [103.504515, 22.703757],
+            [104.476858, 22.81915],
+            [105.329209, 23.352063],
+            [105.811247, 22.976892],
+            [106.725403, 22.794268],
+            [106.567273, 22.218205],
+            [107.04342, 21.811899],
+            [108.05018, 21.55238]
+        ];
+        
+        // ============================================
+        // ISLANDS AND ARCHIPELAGOS OF VIETNAM
+        // ============================================
+        
+        // Quần đảo Hoàng Sa (Paracel Islands) - Sovereign territory of Vietnam
+        const HOANG_SA = {
+            name: "Quần đảo Hoàng Sa",
+            nameEn: "Paracel Islands",
+            centerLat: 16.5,
+            centerLon: 112.0,
+            islands: [
+                { name: "Đảo Phú Lâm", lat: 16.8353, lon: 112.3386 },
+                { name: "Đảo Linh Côn", lat: 16.6700, lon: 112.7300 },
+                { name: "Đảo Tri Tôn", lat: 15.7833, lon: 111.2000 },
+                { name: "Đảo Hoàng Sa", lat: 16.5333, lon: 111.6000 },
+                { name: "Đảo Quang Ảnh", lat: 16.4500, lon: 111.5167 },
+                { name: "Đảo Hữu Nhật", lat: 16.5167, lon: 111.5833 },
+                { name: "Đảo Quang Hòa", lat: 16.4500, lon: 111.7833 },
+                { name: "Đảo Duy Mộng", lat: 16.4667, lon: 111.7500 },
+                { name: "Đảo Bạch Quy", lat: 16.0500, lon: 111.4833 },
+                { name: "Cồn cát Bắc", lat: 16.9667, lon: 112.3000 },
+                { name: "Cồn cát Nam", lat: 16.9333, lon: 112.3333 },
+                { name: "Đảo Cây", lat: 16.9833, lon: 112.2667 }
+            ],
+            color: 0xffcc00,
+            isSovereignty: true
+        };
+        
+        // Quần đảo Trường Sa (Spratly Islands) - Sovereign territory of Vietnam
+        const TRUONG_SA = {
+            name: "Quần đảo Trường Sa",
+            nameEn: "Spratly Islands",
+            centerLat: 9.0,
+            centerLon: 112.5,
+            islands: [
+                { name: "Đảo Trường Sa Lớn", lat: 8.6433, lon: 111.9167 },
+                { name: "Đảo Trường Sa Đông", lat: 8.9167, lon: 112.3333 },
+                { name: "Đảo Song Tử Tây", lat: 11.4333, lon: 114.3333 },
+                { name: "Đảo Song Tử Đông", lat: 11.4500, lon: 114.3667 },
+                { name: "Đảo Thị Tứ", lat: 11.0500, lon: 114.2833 },
+                { name: "Đảo Loại Ta", lat: 10.6667, lon: 114.2167 },
+                { name: "Đảo Sinh Tồn", lat: 9.8833, lon: 114.3333 },
+                { name: "Đảo Sinh Tồn Đông", lat: 9.9000, lon: 114.5667 },
+                { name: "Đảo Nam Yết", lat: 10.1833, lon: 114.3667 },
+                { name: "Đảo Sơn Ca", lat: 10.3833, lon: 114.4833 },
+                { name: "Đảo Phan Vinh", lat: 8.9500, lon: 113.6833 },
+                { name: "Đảo Len Đao", lat: 9.7833, lon: 114.3833 },
+                { name: "Đảo Cô Lin", lat: 9.7500, lon: 114.2500 },
+                { name: "Đảo Gạc Ma", lat: 9.7167, lon: 114.2167 },
+                { name: "Đá Lát", lat: 8.6500, lon: 111.6667 },
+                { name: "Đá Tây", lat: 8.8500, lon: 112.2167 },
+                { name: "Đá Đông", lat: 8.8667, lon: 112.5833 },
+                { name: "Bãi An Bang", lat: 7.8833, lon: 112.9000 }
+            ],
+            color: 0xffcc00,
+            isSovereignty: true
+        };
+        
+        // Các đảo ven bờ và đảo lớn khác
+        const COASTAL_ISLANDS = [
+            // Vịnh Bắc Bộ
+            { name: "Đảo Bạch Long Vĩ", lat: 20.1333, lon: 107.7167, size: "medium" },
+            { name: "Đảo Cô Tô", lat: 21.0500, lon: 107.7667, size: "medium" },
+            { name: "Đảo Cát Bà", lat: 20.7833, lon: 107.0500, size: "large" },
+            { name: "Vịnh Hạ Long", lat: 20.9000, lon: 107.1000, size: "area", islandCount: 1969 },
+            
+            // Miền Trung
+            { name: "Đảo Cồn Cỏ", lat: 17.1833, lon: 107.3333, size: "small" },
+            { name: "Cù Lao Chàm", lat: 15.9500, lon: 108.5167, size: "medium" },
+            { name: "Đảo Lý Sơn", lat: 15.3667, lon: 109.1333, size: "medium" },
+            
+            // Nam Trung Bộ
+            { name: "Hòn Tre (Nha Trang)", lat: 12.1833, lon: 109.2833, size: "medium" },
+            { name: "Hòn Mun", lat: 12.1667, lon: 109.3000, size: "small" },
+            { name: "Đảo Bình Ba", lat: 12.1167, lon: 109.2500, size: "small" },
+            
+            // Nam Bộ
+            { name: "Côn Đảo", lat: 8.6833, lon: 106.6000, size: "large", islandCount: 16 },
+            { name: "Đảo Phú Quý", lat: 10.5167, lon: 108.9333, size: "medium" },
+            { name: "Đảo Phú Quốc", lat: 10.2167, lon: 103.9667, size: "large" },
+            { name: "Quần đảo Thổ Chu", lat: 9.3167, lon: 103.4667, size: "medium", islandCount: 8 },
+            { name: "Quần đảo Nam Du", lat: 9.6833, lon: 104.3833, size: "medium", islandCount: 21 },
+            { name: "Hòn Khoai", lat: 8.4333, lon: 104.8333, size: "small" },
+            { name: "Hòn Chuối", lat: 8.6333, lon: 104.6167, size: "small" }
+        ];
+        
+        // Major cities for markers
+        const CITIES = [
+            { name: "Hà Nội", lat: 21.03, lon: 105.85, isCapital: true },
+            { name: "TP.HCM", lat: 10.82, lon: 106.63 },
+            { name: "Đà Nẵng", lat: 16.07, lon: 108.22 },
+            { name: "Hải Phòng", lat: 20.86, lon: 106.68 },
+            { name: "Cần Thơ", lat: 10.03, lon: 105.78 },
+            { name: "Huế", lat: 16.46, lon: 107.60 },
+            { name: "Nha Trang", lat: 12.25, lon: 109.18 },
+            { name: "Đà Lạt", lat: 11.94, lon: 108.44 },
+            { name: "Vinh", lat: 18.68, lon: 105.68 },
+            { name: "Quy Nhon", lat: 13.77, lon: 109.22 }
+        ];
+        
+        // Global variables
+        let scene, camera, renderer;
+        let mapGroup;
+        let isWireframe = false;
+        let targetZoom = 1;
+        let currentZoom = 1;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        let currentRotationX = 0;
+        let currentRotationY = 0;
+        
+        // Hand tracking variables
+        let hands;
+        let lastPinchDistance = null;
+        let lastPalmPosition = null;
+        let isPinching = false;
+        let isOpenPalm = false;
+        let gestureDebounce = 0;
+        
+        // DOM elements
+        const loadingEl = document.getElementById('loading');
+        const loadingStatus = document.getElementById('loading-status');
+        const startBtn = document.getElementById('start-btn');
+        const videoEl = document.getElementById('webcam');
+        const handCanvas = document.getElementById('hand-canvas');
+        const handCtx = handCanvas.getContext('2d');
+        
+        // ============================================
+        // THREE.JS SETUP
+        // ============================================
+        
+        function initThreeJS() {
+            loadingStatus.textContent = 'Creating 3D environment...';
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000810, 0.08);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 8);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000810, 1);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+            
+            const pointLight1 = new THREE.PointLight(0x00ffff, 1, 50);
+            pointLight1.position.set(5, 10, 5);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0xff00ff, 0.8, 50);
+            pointLight2.position.set(-5, 8, -5);
+            scene.add(pointLight2);
+            
+            // Create map group
+            mapGroup = new THREE.Group();
+            scene.add(mapGroup);
+            
+            // Create Vietnam 3D map
+            createVietnamMap();
+            
+            // Create grid floor
+            createHolographicGrid();
+            
+            // Create particles
+            createParticles();
+            
+            // Animation loop
+            animate();
+        }
+        
+        function createVietnamMap() {
+            loadingStatus.textContent = 'Generating Vietnam terrain...';
+            
+            // Calculate center of Vietnam dynamically
+            let minLon = Infinity, maxLon = -Infinity;
+            let minLat = Infinity, maxLat = -Infinity;
+            
+            VIETNAM_COORDS.forEach(coord => {
+                minLon = Math.min(minLon, coord[0]);
+                maxLon = Math.max(maxLon, coord[0]);
+                minLat = Math.min(minLat, coord[1]);
+                maxLat = Math.max(maxLat, coord[1]);
+            });
+            
+            const centerLon = (minLon + maxLon) / 2;
+            const centerLat = (minLat + maxLat) / 2;
+            const scale = 0.25;
+            
+            // Create extruded shape for Vietnam
+            const shape = new THREE.Shape();
+            
+            VIETNAM_COORDS.forEach((coord, i) => {
+                const x = (coord[0] - centerLon) * scale;
+                const y = (coord[1] - centerLat) * scale;
+                
+                if (i === 0) {
+                    shape.moveTo(x, y);
+                } else {
+                    shape.lineTo(x, y);
+                }
+            });
+            shape.closePath();
+            
+            // Extrude settings
+            const extrudeSettings = {
+                steps: 1,
+                depth: 0.3,
+                bevelEnabled: true,
+                bevelThickness: 0.05,
+                bevelSize: 0.03,
+                bevelSegments: 3
+            };
+            
+            // Main map geometry
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            geometry.rotateX(-Math.PI / 2);
+            
+            // Holographic material
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00ffff,
+                emissive: 0x004444,
+                specular: 0xffffff,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.85,
+                side: THREE.DoubleSide
+            });
+            
+            const mapMesh = new THREE.Mesh(geometry, material);
+            mapMesh.name = 'vietnamMap';
+            mapGroup.add(mapMesh);
+            
+            // Wireframe overlay
+            const wireframeMat = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const wireframeMesh = new THREE.Mesh(geometry.clone(), wireframeMat);
+            wireframeMesh.name = 'wireframe';
+            wireframeMesh.visible = false;
+            mapGroup.add(wireframeMesh);
+            
+            // Outline glow
+            const outlineGeometry = new THREE.BufferGeometry();
+            const outlinePoints = [];
+            
+            VIETNAM_COORDS.forEach(coord => {
+                const x = (coord[0] - centerLon) * scale;
+                const z = -(coord[1] - centerLat) * scale;
+                outlinePoints.push(new THREE.Vector3(x, 0.35, z));
+            });
+            outlinePoints.push(outlinePoints[0].clone()); // Close the loop
+            
+            outlineGeometry.setFromPoints(outlinePoints);
+            
+            const outlineMaterial = new THREE.LineBasicMaterial({
+                color: 0x00ffff,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const outline = new THREE.Line(outlineGeometry, outlineMaterial);
+            outline.name = 'outline';
+            mapGroup.add(outline);
+            
+            // Add city markers
+            addCityMarkers(centerLat, centerLon, scale);
+            
+            // Add islands and archipelagos
+            addIslands(centerLat, centerLon, scale);
+        }
+        
+        function addIslands(centerLat, centerLon, scale) {
+            // ========================================
+            // QUẦN ĐẢO HOÀNG SA (PARACEL ISLANDS)
+            // ========================================
+            const hoangSaGroup = new THREE.Group();
+            hoangSaGroup.name = 'hoangSa';
+            
+            // Create territory boundary circle for Hoang Sa
+            const hsCircleGeo = new THREE.RingGeometry(0.3, 0.35, 32);
+            const hsCircleMat = new THREE.MeshBasicMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            const hsCircle = new THREE.Mesh(hsCircleGeo, hsCircleMat);
+            hsCircle.rotation.x = -Math.PI / 2;
+            const hsCenterX = (HOANG_SA.centerLon - centerLon) * scale;
+            const hsCenterZ = -(HOANG_SA.centerLat - centerLat) * scale;
+            hsCircle.position.set(hsCenterX, 0.05, hsCenterZ);
+            hsCircle.userData = { pulsePhase: 0 };
+            hsCircle.name = 'sovereigntyCircle';
+            hoangSaGroup.add(hsCircle);
+            
+            // Add individual islands of Hoang Sa
+            HOANG_SA.islands.forEach((island, idx) => {
+                const x = (island.lon - centerLon) * scale;
+                const z = -(island.lat - centerLat) * scale;
+                
+                // Island mesh (small extruded shape)
+                const islandGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.15, 8);
+                const islandMat = new THREE.MeshPhongMaterial({
+                    color: 0xffcc00,
+                    emissive: 0x664400,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const islandMesh = new THREE.Mesh(islandGeo, islandMat);
+                islandMesh.position.set(x, 0.1, z);
+                hoangSaGroup.add(islandMesh);
+                
+                // Glowing marker on top
+                const markerGeo = new THREE.SphereGeometry(0.02, 8, 8);
+                const markerMat = new THREE.MeshBasicMaterial({
+                    color: 0xffff00,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const marker = new THREE.Mesh(markerGeo, markerMat);
+                marker.position.set(x, 0.2, z);
+                marker.userData = { pulsePhase: idx * 0.5 };
+                marker.name = 'islandMarker';
+                hoangSaGroup.add(marker);
+            });
+            
+            // Label beam for Hoang Sa
+            const hsBeamGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.8, 8);
+            const hsBeamMat = new THREE.MeshBasicMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.5
+            });
+            const hsBeam = new THREE.Mesh(hsBeamGeo, hsBeamMat);
+            hsBeam.position.set(hsCenterX, 0.5, hsCenterZ);
+            hoangSaGroup.add(hsBeam);
+            
+            // Diamond marker for Hoang Sa
+            const hsDiamond = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.08, 0),
+                new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.8 })
+            );
+            hsDiamond.position.set(hsCenterX, 1.0, hsCenterZ);
+            hsDiamond.name = 'archipelagoDiamond';
+            hoangSaGroup.add(hsDiamond);
+            
+            mapGroup.add(hoangSaGroup);
+            
+            // ========================================
+            // QUẦN ĐẢO TRƯỜNG SA (SPRATLY ISLANDS)
+            // ========================================
+            const truongSaGroup = new THREE.Group();
+            truongSaGroup.name = 'truongSa';
+            
+            // Create territory boundary for Truong Sa (larger area)
+            const tsCircleGeo = new THREE.RingGeometry(0.6, 0.65, 32);
+            const tsCircleMat = new THREE.MeshBasicMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.25,
+                side: THREE.DoubleSide
+            });
+            const tsCircle = new THREE.Mesh(tsCircleGeo, tsCircleMat);
+            tsCircle.rotation.x = -Math.PI / 2;
+            const tsCenterX = (TRUONG_SA.centerLon - centerLon) * scale;
+            const tsCenterZ = -(TRUONG_SA.centerLat - centerLat) * scale;
+            tsCircle.position.set(tsCenterX, 0.05, tsCenterZ);
+            tsCircle.userData = { pulsePhase: Math.PI };
+            tsCircle.name = 'sovereigntyCircle';
+            truongSaGroup.add(tsCircle);
+            
+            // Add individual islands of Truong Sa
+            TRUONG_SA.islands.forEach((island, idx) => {
+                const x = (island.lon - centerLon) * scale;
+                const z = -(island.lat - centerLat) * scale;
+                
+                // Island mesh
+                const islandGeo = new THREE.CylinderGeometry(0.025, 0.035, 0.12, 8);
+                const islandMat = new THREE.MeshPhongMaterial({
+                    color: 0xffcc00,
+                    emissive: 0x664400,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const islandMesh = new THREE.Mesh(islandGeo, islandMat);
+                islandMesh.position.set(x, 0.08, z);
+                truongSaGroup.add(islandMesh);
+                
+                // Glowing marker
+                const markerGeo = new THREE.SphereGeometry(0.015, 8, 8);
+                const markerMat = new THREE.MeshBasicMaterial({
+                    color: 0xffff00,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const marker = new THREE.Mesh(markerGeo, markerMat);
+                marker.position.set(x, 0.16, z);
+                marker.userData = { pulsePhase: idx * 0.3 };
+                marker.name = 'islandMarker';
+                truongSaGroup.add(marker);
+            });
+            
+            // Label beam for Truong Sa
+            const tsBeamGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.8, 8);
+            const tsBeamMat = new THREE.MeshBasicMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.5
+            });
+            const tsBeam = new THREE.Mesh(tsBeamGeo, tsBeamMat);
+            tsBeam.position.set(tsCenterX, 0.5, tsCenterZ);
+            truongSaGroup.add(tsBeam);
+            
+            // Diamond marker for Truong Sa
+            const tsDiamond = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.1, 0),
+                new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.8 })
+            );
+            tsDiamond.position.set(tsCenterX, 1.0, tsCenterZ);
+            tsDiamond.name = 'archipelagoDiamond';
+            truongSaGroup.add(tsDiamond);
+            
+            mapGroup.add(truongSaGroup);
+            
+            // ========================================
+            // COASTAL ISLANDS
+            // ========================================
+            COASTAL_ISLANDS.forEach((island, idx) => {
+                const x = (island.lon - centerLon) * scale;
+                const z = -(island.lat - centerLat) * scale;
+                
+                let radius, height, color;
+                
+                switch(island.size) {
+                    case 'large':
+                        radius = 0.06;
+                        height = 0.2;
+                        color = 0x00ccff;
+                        break;
+                    case 'medium':
+                        radius = 0.04;
+                        height = 0.15;
+                        color = 0x00aaff;
+                        break;
+                    case 'area':
+                        radius = 0.08;
+                        height = 0.1;
+                        color = 0x00ffaa;
+                        break;
+                    default:
+                        radius = 0.025;
+                        height = 0.1;
+                        color = 0x00ddff;
+                }
+                
+                // Island mesh
+                const islandGeo = new THREE.CylinderGeometry(radius * 0.8, radius, height, 12);
+                const islandMat = new THREE.MeshPhongMaterial({
+                    color: color,
+                    emissive: 0x003344,
+                    transparent: true,
+                    opacity: 0.85
+                });
+                const islandMesh = new THREE.Mesh(islandGeo, islandMat);
+                islandMesh.position.set(x, height / 2, z);
+                mapGroup.add(islandMesh);
+                
+                // Glowing top marker
+                const markerGeo = new THREE.SphereGeometry(radius * 0.4, 8, 8);
+                const markerMat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const marker = new THREE.Mesh(markerGeo, markerMat);
+                marker.position.set(x, height + 0.03, z);
+                marker.userData = { pulsePhase: idx * 0.4 };
+                marker.name = 'islandMarker';
+                mapGroup.add(marker);
+                
+                // Add ring for larger islands
+                if (island.size === 'large' || island.size === 'area') {
+                    const ringGeo = new THREE.RingGeometry(radius * 1.2, radius * 1.5, 24);
+                    const ringMat = new THREE.MeshBasicMaterial({
+                        color: color,
+                        transparent: true,
+                        opacity: 0.3,
+                        side: THREE.DoubleSide
+                    });
+                    const ring = new THREE.Mesh(ringGeo, ringMat);
+                    ring.rotation.x = -Math.PI / 2;
+                    ring.position.set(x, 0.02, z);
+                    ring.userData = { pulsePhase: idx * 0.5 };
+                    ring.name = 'islandRing';
+                    mapGroup.add(ring);
+                }
+            });
+            
+            // ========================================
+            // CONNECTING LINES (Vietnam to archipelagos)
+            // ========================================
+            // Line from mainland to Hoang Sa
+            const hsLinePoints = [
+                new THREE.Vector3(0, 0.1, -0.5), // Approximate Da Nang position
+                new THREE.Vector3(hsCenterX, 0.1, hsCenterZ)
+            ];
+            const hsLineGeo = new THREE.BufferGeometry().setFromPoints(hsLinePoints);
+            const hsLineMat = new THREE.LineDashedMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.3,
+                dashSize: 0.1,
+                gapSize: 0.05
+            });
+            const hsLine = new THREE.Line(hsLineGeo, hsLineMat);
+            hsLine.computeLineDistances();
+            mapGroup.add(hsLine);
+            
+            // Line from mainland to Truong Sa
+            const tsLinePoints = [
+                new THREE.Vector3(0.3, 0.1, 0.8), // Approximate southern Vietnam
+                new THREE.Vector3(tsCenterX, 0.1, tsCenterZ)
+            ];
+            const tsLineGeo = new THREE.BufferGeometry().setFromPoints(tsLinePoints);
+            const tsLineMat = new THREE.LineDashedMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.3,
+                dashSize: 0.1,
+                gapSize: 0.05
+            });
+            const tsLine = new THREE.Line(tsLineGeo, tsLineMat);
+            tsLine.computeLineDistances();
+            mapGroup.add(tsLine);
+        }
+        
+        function addCityMarkers(centerLat, centerLon, scale) {
+            CITIES.forEach(city => {
+                const x = (city.lon - centerLon) * scale;
+                const z = -(city.lat - centerLat) * scale;
+                
+                // Marker point
+                const markerGeo = new THREE.SphereGeometry(0.05, 16, 16);
+                const markerMat = new THREE.MeshBasicMaterial({
+                    color: city.isCapital ? 0xff0066 : 0x00ff88,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const marker = new THREE.Mesh(markerGeo, markerMat);
+                marker.position.set(x, 0.4, z);
+                mapGroup.add(marker);
+                
+                // Vertical beam
+                const beamGeo = new THREE.CylinderGeometry(0.01, 0.01, city.isCapital ? 0.8 : 0.5, 8);
+                const beamMat = new THREE.MeshBasicMaterial({
+                    color: city.isCapital ? 0xff0066 : 0x00ff88,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const beam = new THREE.Mesh(beamGeo, beamMat);
+                beam.position.set(x, 0.4 + (city.isCapital ? 0.4 : 0.25), z);
+                mapGroup.add(beam);
+                
+                // Ring at base
+                const ringGeo = new THREE.RingGeometry(0.06, 0.1, 32);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: city.isCapital ? 0xff0066 : 0x00ff88,
+                    transparent: true,
+                    opacity: 0.3,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.set(x, 0.35, z);
+                ring.userData = { pulsePhase: Math.random() * Math.PI * 2 };
+                ring.name = 'cityRing';
+                mapGroup.add(ring);
+            });
+        }
+        
+        function createHolographicGrid() {
+            // Main grid
+            const gridHelper = new THREE.GridHelper(20, 40, 0x004455, 0x002233);
+            gridHelper.position.y = -0.01;
+            scene.add(gridHelper);
+            
+            // Circular rings
+            for (let i = 1; i <= 5; i++) {
+                const ringGeo = new THREE.RingGeometry(i * 1.5 - 0.02, i * 1.5, 64);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0x004455,
+                    transparent: true,
+                    opacity: 0.3 - i * 0.04,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.y = -0.005;
+                scene.add(ring);
+            }
+        }
+        
+        function createParticles() {
+            const particleCount = 500;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 20;
+                positions[i * 3 + 1] = Math.random() * 10;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+            }
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            const material = new THREE.PointsMaterial({
+                color: 0x00ffff,
+                size: 0.03,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const particles = new THREE.Points(geometry, material);
+            particles.name = 'particles';
+            scene.add(particles);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Smooth zoom and rotation
+            currentZoom += (targetZoom - currentZoom) * 0.08;
+            currentRotationX += (targetRotationX - currentRotationX) * 0.08;
+            currentRotationY += (targetRotationY - currentRotationY) * 0.08;
+            
+            // Apply transformations
+            mapGroup.scale.setScalar(currentZoom);
+            mapGroup.rotation.x = currentRotationX;
+            mapGroup.rotation.y = currentRotationY;
+            
+            // Animate all elements
+            mapGroup.traverse(child => {
+                // City rings animation
+                if (child.name === 'cityRing' && child.userData.pulsePhase !== undefined) {
+                    const pulse = Math.sin(time * 2 + child.userData.pulsePhase) * 0.5 + 0.5;
+                    child.scale.setScalar(0.8 + pulse * 0.4);
+                    child.material.opacity = 0.2 + pulse * 0.3;
+                }
+                
+                // Island markers animation
+                if (child.name === 'islandMarker' && child.userData.pulsePhase !== undefined) {
+                    const pulse = Math.sin(time * 3 + child.userData.pulsePhase) * 0.5 + 0.5;
+                    child.scale.setScalar(0.8 + pulse * 0.4);
+                    child.material.opacity = 0.6 + pulse * 0.4;
+                }
+                
+                // Island rings animation
+                if (child.name === 'islandRing' && child.userData.pulsePhase !== undefined) {
+                    const pulse = Math.sin(time * 2 + child.userData.pulsePhase) * 0.5 + 0.5;
+                    child.scale.setScalar(0.9 + pulse * 0.2);
+                    child.material.opacity = 0.2 + pulse * 0.2;
+                }
+                
+                // Sovereignty circles animation (Hoang Sa, Truong Sa)
+                if (child.name === 'sovereigntyCircle' && child.userData.pulsePhase !== undefined) {
+                    const pulse = Math.sin(time * 1.5 + child.userData.pulsePhase) * 0.5 + 0.5;
+                    child.scale.setScalar(0.95 + pulse * 0.1);
+                    child.material.opacity = 0.15 + pulse * 0.2;
+                }
+                
+                // Archipelago diamonds animation (rotating)
+                if (child.name === 'archipelagoDiamond') {
+                    child.rotation.y = time * 1.5;
+                    child.rotation.x = Math.sin(time) * 0.2;
+                    child.position.y = 1.0 + Math.sin(time * 2) * 0.1;
+                }
+            });
+            
+            // Animate outline
+            const outline = mapGroup.getObjectByName('outline');
+            if (outline) {
+                outline.material.opacity = 0.5 + Math.sin(time * 3) * 0.3;
+            }
+            
+            // Animate particles
+            const particles = scene.getObjectByName('particles');
+            if (particles) {
+                particles.rotation.y = time * 0.05;
+                const positions = particles.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i + 1] += 0.01;
+                    if (positions[i + 1] > 10) positions[i + 1] = 0;
+                }
+                particles.geometry.attributes.position.needsUpdate = true;
+            }
+            
+            // Update HUD
+            document.getElementById('zoom-value').textContent = currentZoom.toFixed(2) + 'x';
+            document.getElementById('rot-x').textContent = Math.round(THREE.MathUtils.radToDeg(currentRotationX)) + '°';
+            document.getElementById('rot-y').textContent = Math.round(THREE.MathUtils.radToDeg(currentRotationY)) + '°';
+            
+            renderer.render(scene, camera);
+        }
+        
+        // ============================================
+        // HAND TRACKING SETUP
+        // ============================================
+        
+        async function initHandTracking() {
+            loadingStatus.textContent = 'Loading hand tracking model...';
+            
+            hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`;
+                }
+            });
+            
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults(onHandResults);
+            
+            loadingStatus.textContent = 'Hand tracking ready!';
+        }
+        
+        function onHandResults(results) {
+            // Clear canvas
+            handCtx.save();
+            handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+            
+            // Draw hand landmarks
+            if (results.multiHandLandmarks) {
+                document.getElementById('hands-count').textContent = results.multiHandLandmarks.length;
+                
+                for (const landmarks of results.multiHandLandmarks) {
+                    // Draw connections
+                    drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, {
+                        color: 'rgba(0, 255, 255, 0.5)',
+                        lineWidth: 2
+                    });
+                    
+                    // Draw landmarks
+                    drawLandmarks(handCtx, landmarks, {
+                        color: 'rgba(255, 0, 255, 0.8)',
+                        lineWidth: 1,
+                        radius: 3
+                    });
+                }
+                
+                // Process gestures
+                processGestures(results.multiHandLandmarks);
+            } else {
+                document.getElementById('hands-count').textContent = '0';
+                document.getElementById('current-gesture').textContent = 'Waiting for hands...';
+                document.getElementById('pinch-dist').textContent = '--';
+                document.getElementById('palm-pos').textContent = '--';
+                lastPinchDistance = null;
+                lastPalmPosition = null;
+            }
+            
+            handCtx.restore();
+        }
+        
+        function processGestures(handsLandmarks) {
+            if (handsLandmarks.length === 0) return;
+            
+            const landmarks = handsLandmarks[0];
+            
+            // Key points
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+            const wrist = landmarks[0];
+            const indexMcp = landmarks[5];
+            const middleMcp = landmarks[9];
+            
+            // Calculate palm center
+            const palmX = (wrist.x + indexMcp.x + middleMcp.x) / 3;
+            const palmY = (wrist.y + indexMcp.y + middleMcp.y) / 3;
+            
+            // Update palm position display
+            document.getElementById('palm-pos').textContent = 
+                `${(palmX * 100).toFixed(0)}, ${(palmY * 100).toFixed(0)}`;
+            
+            // Calculate pinch distance (thumb to index)
+            const pinchDist = Math.sqrt(
+                Math.pow(thumbTip.x - indexTip.x, 2) +
+                Math.pow(thumbTip.y - indexTip.y, 2)
+            );
+            
+            document.getElementById('pinch-dist').textContent = (pinchDist * 100).toFixed(1);
+            
+            // Detect finger states
+            const thumbExtended = thumbTip.x < landmarks[3].x; // Simplified for right hand
+            const indexExtended = indexTip.y < landmarks[6].y;
+            const middleExtended = middleTip.y < landmarks[10].y;
+            const ringExtended = ringTip.y < landmarks[14].y;
+            const pinkyExtended = pinkyTip.y < landmarks[18].y;
+            
+            const extendedCount = [indexExtended, middleExtended, ringExtended, pinkyExtended]
+                .filter(Boolean).length;
+            
+            // ========== GESTURE RECOGNITION ==========
+            
+            // PINCH - Zoom control
+            if (pinchDist < 0.08) {
+                isPinching = true;
+                document.getElementById('current-gesture').textContent = '🤏 PINCH - Zooming';
+                
+                if (lastPinchDistance !== null) {
+                    // Two-hand pinch for more precise zoom
+                    if (handsLandmarks.length === 2) {
+                        const hand2 = handsLandmarks[1];
+                        const thumb2 = hand2[4];
+                        const index2 = hand2[8];
+                        
+                        // Distance between hands
+                        const handsDist = Math.sqrt(
+                            Math.pow(thumbTip.x - thumb2.x, 2) +
+                            Math.pow(thumbTip.y - thumb2.y, 2)
+                        );
+                        
+                        if (lastPinchDistance !== null) {
+                            const delta = (handsDist - lastPinchDistance) * 5;
+                            targetZoom = Math.max(0.5, Math.min(3, targetZoom + delta));
+                        }
+                        lastPinchDistance = handsDist;
+                    } else {
+                        // Single hand pinch - use vertical movement
+                        const delta = (lastPinchDistance - pinchDist) * 3;
+                        targetZoom = Math.max(0.5, Math.min(3, targetZoom + delta));
+                        lastPinchDistance = pinchDist;
+                    }
+                } else {
+                    lastPinchDistance = pinchDist;
+                }
+            }
+            // OPEN PALM - Rotate map
+            else if (extendedCount >= 4) {
+                isOpenPalm = true;
+                isPinching = false;
+                lastPinchDistance = null;
+                document.getElementById('current-gesture').textContent = '🖐️ OPEN PALM - Rotating';
+                
+                if (lastPalmPosition !== null) {
+                    const deltaX = (palmX - lastPalmPosition.x) * 3;
+                    const deltaY = (palmY - lastPalmPosition.y) * 3;
+                    
+                    targetRotationY += deltaX;
+                    targetRotationX = Math.max(-0.8, Math.min(0.8, targetRotationX + deltaY));
+                }
+                
+                lastPalmPosition = { x: palmX, y: palmY };
+            }
+            // FIST - Reset view
+            else if (extendedCount === 0 && !thumbExtended) {
+                document.getElementById('current-gesture').textContent = '👊 FIST - Reset View';
+                
+                if (gestureDebounce <= 0) {
+                    targetZoom = 1;
+                    targetRotationX = 0;
+                    targetRotationY = 0;
+                    gestureDebounce = 30; // Debounce
+                }
+                
+                isPinching = false;
+                isOpenPalm = false;
+                lastPinchDistance = null;
+                lastPalmPosition = null;
+            }
+            // VICTORY - Toggle wireframe
+            else if (indexExtended && middleExtended && !ringExtended && !pinkyExtended) {
+                document.getElementById('current-gesture').textContent = '✌️ VICTORY - Toggle Wireframe';
+                
+                if (gestureDebounce <= 0) {
+                    isWireframe = !isWireframe;
+                    const wireframe = mapGroup.getObjectByName('wireframe');
+                    const mainMap = mapGroup.getObjectByName('vietnamMap');
+                    if (wireframe && mainMap) {
+                        wireframe.visible = isWireframe;
+                        mainMap.material.opacity = isWireframe ? 0.3 : 0.85;
+                    }
+                    gestureDebounce = 30;
+                }
+                
+                isPinching = false;
+                isOpenPalm = false;
+                lastPinchDistance = null;
+                lastPalmPosition = null;
+            }
+            // POINTING - Just tracking
+            else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
+                document.getElementById('current-gesture').textContent = '☝️ POINTING';
+                isPinching = false;
+                isOpenPalm = false;
+                lastPinchDistance = null;
+                lastPalmPosition = null;
+            }
+            else {
+                document.getElementById('current-gesture').textContent = 'Detecting...';
+                isPinching = false;
+                isOpenPalm = false;
+                lastPinchDistance = null;
+                lastPalmPosition = null;
+            }
+            
+            // Decrease debounce
+            if (gestureDebounce > 0) gestureDebounce--;
+        }
+        
+        // ============================================
+        // CAMERA SETUP
+        // ============================================
+        
+        async function startCamera() {
+            loadingStatus.textContent = 'Accessing camera...';
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+                
+                videoEl.srcObject = stream;
+                
+                await new Promise((resolve) => {
+                    videoEl.onloadedmetadata = () => {
+                        handCanvas.width = videoEl.videoWidth;
+                        handCanvas.height = videoEl.videoHeight;
+                        resolve();
+                    };
+                });
+                
+                // Start processing frames
+                const processFrame = async () => {
+                    if (videoEl.readyState >= 2) {
+                        await hands.send({ image: videoEl });
+                    }
+                    requestAnimationFrame(processFrame);
+                };
+                
+                processFrame();
+                
+                loadingStatus.textContent = 'All systems operational!';
+                
+                // Hide loading screen
+                setTimeout(() => {
+                    loadingEl.classList.add('hidden');
+                }, 500);
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                
+                // Show detailed error message
+                const videoContainer = document.getElementById('video-container');
+                videoContainer.innerHTML = `
+                    <div style="padding: 15px; text-align: center; font-size: 0.7rem;">
+                        <p style="color: #ff6666; margin-bottom: 10px;">⚠️ Camera Error</p>
+                        <p style="opacity: 0.7; line-height: 1.4;">
+                            Cần chạy qua localhost hoặc HTTPS.<br>
+                            Dùng chuột/touch để điều khiển.
+                        </p>
+                    </div>
+                `;
+                
+                document.getElementById('current-gesture').innerHTML = '🖱️ Dùng chuột/touch';
+                document.getElementById('current-gesture').style.color = '#ffaa00';
+                
+                loadingEl.classList.add('hidden');
+            }
+        }
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        async function init() {
+            // Init Three.js
+            initThreeJS();
+            
+            // Init hand tracking
+            await initHandTracking();
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            // Touch fallback for devices without gesture support
+            let touchStartDist = null;
+            let touchStartPos = null;
+            
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    touchStartDist = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                } else if (e.touches.length === 1) {
+                    touchStartPos = { x: e.touches[0].pageX, y: e.touches[0].pageY };
+                }
+            });
+            
+            renderer.domElement.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && touchStartDist) {
+                    const dist = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                    const delta = (dist - touchStartDist) * 0.005;
+                    targetZoom = Math.max(0.5, Math.min(3, targetZoom + delta));
+                    touchStartDist = dist;
+                } else if (e.touches.length === 1 && touchStartPos) {
+                    const deltaX = (e.touches[0].pageX - touchStartPos.x) * 0.005;
+                    const deltaY = (e.touches[0].pageY - touchStartPos.y) * 0.005;
+                    targetRotationY += deltaX;
+                    targetRotationX = Math.max(-0.8, Math.min(0.8, targetRotationX + deltaY));
+                    touchStartPos = { x: e.touches[0].pageX, y: e.touches[0].pageY };
+                }
+            });
+            
+            // Mouse fallback
+            let isDragging = false;
+            let lastMousePos = null;
+            
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMousePos = { x: e.clientX, y: e.clientY };
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging && lastMousePos) {
+                    const deltaX = (e.clientX - lastMousePos.x) * 0.005;
+                    const deltaY = (e.clientY - lastMousePos.y) * 0.005;
+                    targetRotationY += deltaX;
+                    targetRotationX = Math.max(-0.8, Math.min(0.8, targetRotationX + deltaY));
+                    lastMousePos = { x: e.clientX, y: e.clientY };
+                }
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging = false;
+                lastMousePos = null;
+            });
+            
+            renderer.domElement.addEventListener('wheel', (e) => {
+                const delta = e.deltaY * -0.001;
+                targetZoom = Math.max(0.5, Math.min(3, targetZoom + delta));
+            });
+            
+            loadingStatus.textContent = 'Click "Bắt đầu" to enable camera';
+        }
+        
+        // Start button handler
+        startBtn.addEventListener('click', async () => {
+            startBtn.classList.add('hidden');
+            await startCamera();
+        });
+        
+        // Initialize everything
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bản đồ 3D Việt Nam - Futuristic</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #00f5d4;
+            --secondary: #7b2cbf;
+            --accent: #f15bb5;
+            --accent2: #fee440;
+            --bg-dark: #0a0a1a;
+            --bg-medium: #12122a;
+            --text: #e0e0ff;
+            --glass: rgba(20, 20, 50, 0.7);
+        }
+        
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: var(--bg-dark);
+            overflow: hidden;
+            color: var(--text);
+        }
+        
+        #app {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* Loading Screen */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #1a1a3a 0%, #0a0a1a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease-out;
+        }
+        
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loader-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .loader-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        .loader-ring:nth-child(1) {
+            border-top-color: var(--primary);
+            animation-duration: 1.5s;
+        }
+        
+        .loader-ring:nth-child(2) {
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+            border-right-color: var(--accent);
+            animation-duration: 1.2s;
+            animation-direction: reverse;
+        }
+        
+        .loader-ring:nth-child(3) {
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+            border-bottom-color: var(--secondary);
+            animation-duration: 0.9s;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        #loading h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            margin-top: 30px;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 3s linear infinite;
+        }
+        
+        @keyframes gradient {
+            to { background-position: 200% center; }
+        }
+        
+        #loading-status {
+            font-size: 0.85rem;
+            margin-top: 15px;
+            opacity: 0.6;
+            letter-spacing: 1px;
+        }
+        
+        /* Title */
+        #title-hud {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        #title-hud h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 50%, var(--accent2) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 245, 212, 0.5);
+            letter-spacing: 4px;
+        }
+        
+        #title-hud .subtitle {
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-top: 5px;
+            opacity: 0.8;
+            letter-spacing: 2px;
+        }
+        
+        /* Glass Panel Style */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 245, 212, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                        inset 0 0 20px rgba(0, 245, 212, 0.05);
+        }
+        
+        /* Province List */
+        #province-panel {
+            position: fixed;
+            left: 20px;
+            top: 100px;
+            bottom: 20px;
+            width: 280px;
+            padding: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        
+        #province-panel.collapsed {
+            transform: translateX(-260px);
+        }
+        
+        #province-panel h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #province-panel h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, var(--primary), var(--accent));
+            border-radius: 2px;
+        }
+        
+        #search-box {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 245, 212, 0.1);
+            border: 1px solid rgba(0, 245, 212, 0.3);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'Exo 2', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        #search-box:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 245, 212, 0.3);
+        }
+        
+        #search-box::placeholder {
+            color: rgba(224, 224, 255, 0.4);
+        }
+        
+        #province-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        #province-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        #province-list::-webkit-scrollbar-track {
+            background: rgba(0, 245, 212, 0.1);
+            border-radius: 2px;
+        }
+        
+        #province-list::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        .region-group {
+            margin-bottom: 15px;
+        }
+        
+        .region-title {
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            padding-left: 10px;
+        }
+        
+        .province-item {
+            padding: 10px 15px;
+            margin: 4px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .province-item:hover {
+            background: rgba(0, 245, 212, 0.15);
+            transform: translateX(5px);
+        }
+        
+        .province-item.selected {
+            background: linear-gradient(135deg, rgba(0, 245, 212, 0.3), rgba(123, 44, 191, 0.3));
+            border: 1px solid var(--primary);
+        }
+        
+        .province-item.capital {
+            color: var(--accent2);
+        }
+        
+        .province-item.major-city {
+            color: var(--accent);
+        }
+        
+        .province-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+        
+        .province-item.capital .province-dot {
+            background: var(--accent2);
+            box-shadow: 0 0 10px var(--accent2);
+        }
+        
+        .province-item.major-city .province-dot {
+            background: var(--accent);
+        }
+        
+        /* Toggle Button */
+        #toggle-panel {
+            position: absolute;
+            right: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 35px;
+            height: 60px;
+            background: var(--glass);
+            border: 1px solid rgba(0, 245, 212, 0.3);
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+        
+        #toggle-panel:hover {
+            background: rgba(0, 245, 212, 0.2);
+        }
+        
+        /* Detail Panel */
+        #detail-panel {
+            position: fixed;
+            right: 20px;
+            top: 100px;
+            width: 320px;
+            padding: 25px;
+            z-index: 100;
+            display: none;
+        }
+        
+        #detail-panel.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        #detail-panel h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+        
+        #detail-panel .province-type {
+            font-size: 0.8rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        
+        .detail-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 245, 212, 0.1);
+        }
+        
+        .detail-stat .label {
+            color: rgba(224, 224, 255, 0.6);
+            font-size: 0.85rem;
+        }
+        
+        .detail-stat .value {
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .detail-features {
+            margin-top: 20px;
+        }
+        
+        .detail-features h4 {
+            font-size: 0.8rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .feature-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            margin: 3px;
+            background: rgba(123, 44, 191, 0.2);
+            border: 1px solid rgba(123, 44, 191, 0.4);
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+        
+        #close-detail {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: rgba(241, 91, 181, 0.2);
+            border: 1px solid rgba(241, 91, 181, 0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--accent);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        #close-detail:hover {
+            background: rgba(241, 91, 181, 0.4);
+            transform: rotate(90deg);
+        }
+        
+        #back-to-map {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 10px;
+            color: var(--bg-dark);
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #back-to-map:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 245, 212, 0.4);
+        }
+        
+        /* Controls */
+        #controls-info {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            z-index: 100;
+            font-size: 0.75rem;
+        }
+        
+        #controls-info h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+        
+        .control-item {
+            opacity: 0.7;
+            white-space: nowrap;
+        }
+        
+        /* Video Feed */
+        #video-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 180px;
+            height: 135px;
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 100;
+            border: 2px solid rgba(0, 245, 212, 0.3);
+        }
+        
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        #hand-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+        
+        #camera-status {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            font-size: 0.65rem;
+            color: var(--primary);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        /* Tooltip */
+        #tooltip {
+            position: fixed;
+            padding: 12px 16px;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 245, 212, 0.3);
+            border-radius: 10px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 250px;
+        }
+        
+        #tooltip .name {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 500;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+        
+        #tooltip .info {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        #tooltip .click-hint {
+            font-size: 0.7rem;
+            color: var(--accent);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 245, 212, 0.2);
+        }
+        
+        /* View Mode Indicator */
+        #view-mode {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 25px;
+            z-index: 100;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            color: var(--accent2);
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="loading">
+            <div class="loader-container">
+                <div class="loader-ring"></div>
+                <div class="loader-ring"></div>
+                <div class="loader-ring"></div>
+            </div>
+            <h1>VIETNAM 3D MAP</h1>
+            <div id="loading-status">Initializing...</div>
+        </div>
+        
+        <div id="title-hud">
+            <h1>🇻🇳 VIỆT NAM</h1>
+            <div class="subtitle">INTERACTIVE 3D MAP • HOÀNG SA & TRƯỜNG SA</div>
+        </div>
+        
+        <div id="province-panel" class="glass-panel">
+            <h3>TỈNH THÀNH</h3>
+            <input type="text" id="search-box" placeholder="🔍 Tìm kiếm tỉnh thành...">
+            <div id="province-list"></div>
+            <div id="toggle-panel">◀</div>
+        </div>
+        
+        <div id="detail-panel" class="glass-panel">
+            <div id="close-detail">×</div>
+            <h2 id="detail-name">Hà Nội</h2>
+            <div class="province-type" id="detail-type">Thủ đô</div>
+            
+            <div class="detail-stat">
+                <span class="label">Diện tích</span>
+                <span class="value" id="detail-area">--</span>
+            </div>
+            <div class="detail-stat">
+                <span class="label">Dân số</span>
+                <span class="value" id="detail-population">--</span>
+            </div>
+            <div class="detail-stat">
+                <span class="label">Vùng</span>
+                <span class="value" id="detail-region">--</span>
+            </div>
+            <div class="detail-stat">
+                <span class="label">Mật độ</span>
+                <span class="value" id="detail-density">--</span>
+            </div>
+            
+            <div class="detail-features">
+                <h4>Đặc điểm nổi bật</h4>
+                <div id="detail-tags"></div>
+            </div>
+            
+            <button id="back-to-map">← Quay lại bản đồ tổng quan</button>
+        </div>
+        
+        <div id="controls-info" class="glass-panel">
+            <h3>ĐIỀU KHIỂN</h3>
+            <div class="control-row">
+                <span class="control-item">🖱️ Kéo: Xoay</span>
+                <span class="control-item">⚙️ Scroll: Zoom</span>
+            </div>
+            <div class="control-row">
+                <span class="control-item">🖐️🖐️ 2 tay: Xoay 3D</span>
+                <span class="control-item">🤏🤏 2 pinch: Zoom</span>
+            </div>
+            <div class="control-row">
+                <span class="control-item">👆 Click: Chọn tỉnh</span>
+            </div>
+        </div>
+        
+        <div id="video-container" class="glass-panel">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="hand-canvas"></canvas>
+            <div id="camera-status">Camera: --</div>
+        </div>
+        
+        <div id="tooltip">
+            <div class="name"></div>
+            <div class="info"></div>
+            <div class="click-hint">👆 Click để xem chi tiết</div>
+        </div>
+        
+        <div id="view-mode" class="glass-panel">TOÀN QUỐC</div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
+    
+    <script>
+        // ============================================
+        // VIETNAM 3D FUTURISTIC MAP
+        // with Province Selection
+        // ============================================
+        
+        // Province/City Data with boundaries
+        const PROVINCES = [
+            // Thủ đô
+            { id: 'hanoi', name: 'Hà Nội', type: 'capital', region: 'Đồng bằng sông Hồng',
+              lat: 21.03, lon: 105.85, area: 3359, population: 8.4,
+              features: ['Di sản văn hóa', 'Trung tâm chính trị', 'Hồ Hoàn Kiếm', 'Phố cổ'],
+              coords: [[105.3,21.5],[106.0,21.5],[106.2,21.2],[106.3,20.9],[105.8,20.7],[105.3,20.9],[105.3,21.5]]
+            },
+            // Thành phố trực thuộc TW
+            { id: 'hcm', name: 'TP. Hồ Chí Minh', type: 'major', region: 'Đông Nam Bộ',
+              lat: 10.82, lon: 106.63, area: 2095, population: 9.2,
+              features: ['Trung tâm kinh tế', 'Đô thị lớn nhất', 'Quận 1', 'Landmark 81'],
+              coords: [[106.3,11.2],[107.0,11.1],[107.1,10.6],[106.8,10.4],[106.3,10.5],[106.3,11.2]]
+            },
+            { id: 'danang', name: 'Đà Nẵng', type: 'major', region: 'Nam Trung Bộ',
+              lat: 16.07, lon: 108.22, area: 1285, population: 1.1,
+              features: ['Cầu Rồng', 'Bãi biển Mỹ Khê', 'Ngũ Hành Sơn', 'Thành phố đáng sống'],
+              coords: [[107.8,16.3],[108.4,16.3],[108.5,15.9],[108.0,15.8],[107.8,16.3]]
+            },
+            { id: 'haiphong', name: 'Hải Phòng', type: 'major', region: 'Đồng bằng sông Hồng',
+              lat: 20.86, lon: 106.68, area: 1562, population: 2.0,
+              features: ['Cảng biển', 'Cát Bà', 'Đồ Sơn', 'Công nghiệp'],
+              coords: [[106.4,21.1],[107.0,21.0],[107.1,20.6],[106.5,20.5],[106.4,21.1]]
+            },
+            { id: 'cantho', name: 'Cần Thơ', type: 'major', region: 'Đồng bằng sông Cửu Long',
+              lat: 10.03, lon: 105.78, area: 1439, population: 1.2,
+              features: ['Chợ nổi Cái Răng', 'Bến Ninh Kiều', 'Miền Tây', 'Lúa gạo'],
+              coords: [[105.5,10.3],[106.1,10.3],[106.1,9.8],[105.5,9.8],[105.5,10.3]]
+            },
+            
+            // Bắc Bộ
+            { id: 'quangninh', name: 'Quảng Ninh', type: 'province', region: 'Đông Bắc Bộ',
+              lat: 21.0, lon: 107.3, area: 6178, population: 1.3,
+              features: ['Vịnh Hạ Long', 'Di sản UNESCO', 'Than đá', 'Móng Cái'],
+              coords: [[106.5,21.6],[108.0,21.5],[108.1,20.9],[107.0,20.8],[106.5,21.6]]
+            },
+            { id: 'laocai', name: 'Lào Cai', type: 'province', region: 'Tây Bắc Bộ',
+              lat: 22.4, lon: 104.0, area: 6364, population: 0.7,
+              features: ['Sa Pa', 'Fansipan', 'Ruộng bậc thang', 'Biên giới'],
+              coords: [[103.5,23.0],[104.5,23.3],[104.8,22.5],[103.8,22.0],[103.5,23.0]]
+            },
+            { id: 'hagiang', name: 'Hà Giang', type: 'province', region: 'Đông Bắc Bộ',
+              lat: 22.8, lon: 105.0, area: 7915, population: 0.9,
+              features: ['Cao nguyên đá Đồng Văn', 'Cột cờ Lũng Cú', 'Địa chất UNESCO'],
+              coords: [[104.5,23.4],[105.8,23.0],[105.5,22.5],[104.5,22.8],[104.5,23.4]]
+            },
+            { id: 'sonla', name: 'Sơn La', type: 'province', region: 'Tây Bắc Bộ',
+              lat: 21.3, lon: 104.0, area: 14055, population: 1.2,
+              features: ['Mộc Châu', 'Thủy điện', 'Cao nguyên', 'Chè'],
+              coords: [[103.2,21.8],[104.8,21.8],[104.8,21.0],[103.2,21.0],[103.2,21.8]]
+            },
+            { id: 'ninhbinh', name: 'Ninh Bình', type: 'province', region: 'Đồng bằng sông Hồng',
+              lat: 20.25, lon: 105.97, area: 1387, population: 0.98,
+              features: ['Tràng An', 'Di sản UNESCO', 'Cố đô Hoa Lư', 'Tam Cốc'],
+              coords: [[105.5,20.5],[106.3,20.5],[106.3,20.0],[105.5,20.0],[105.5,20.5]]
+            },
+            { id: 'thaibinh', name: 'Thái Bình', type: 'province', region: 'Đồng bằng sông Hồng',
+              lat: 20.45, lon: 106.34, area: 1546, population: 1.86,
+              features: ['Lúa gạo', 'Chùa Keo', 'Đồng bằng', 'Làng nghề'],
+              coords: [[106.1,20.6],[106.6,20.6],[106.6,20.2],[106.1,20.2],[106.1,20.6]]
+            },
+            
+            // Trung Bộ
+            { id: 'hue', name: 'Thừa Thiên Huế', type: 'province', region: 'Bắc Trung Bộ',
+              lat: 16.46, lon: 107.60, area: 5033, population: 1.1,
+              features: ['Cố đô Huế', 'Di sản UNESCO', 'Sông Hương', 'Nhã nhạc cung đình'],
+              coords: [[107.0,16.8],[108.2,16.8],[108.3,16.1],[107.0,16.0],[107.0,16.8]]
+            },
+            { id: 'quangnam', name: 'Quảng Nam', type: 'province', region: 'Nam Trung Bộ',
+              lat: 15.57, lon: 108.47, area: 10575, population: 1.5,
+              features: ['Hội An', 'Mỹ Sơn', 'Di sản UNESCO', 'Cù Lao Chàm'],
+              coords: [[107.2,16.0],[108.7,16.0],[108.8,15.3],[107.3,15.2],[107.2,16.0]]
+            },
+            { id: 'nhatrang', name: 'Khánh Hòa', type: 'province', region: 'Nam Trung Bộ',
+              lat: 12.25, lon: 109.18, area: 5198, population: 1.2,
+              features: ['Nha Trang', 'Vinpearl', 'Biển đẹp', 'Du lịch'],
+              coords: [[108.7,12.8],[109.4,12.8],[109.5,11.8],[108.8,11.7],[108.7,12.8]]
+            },
+            { id: 'binhdinh', name: 'Bình Định', type: 'province', region: 'Nam Trung Bộ',
+              lat: 13.77, lon: 109.22, area: 6025, population: 1.5,
+              features: ['Quy Nhơn', 'Tháp Chàm', 'Võ cổ truyền', 'Ghềnh Ráng'],
+              coords: [[108.6,14.4],[109.4,14.4],[109.5,13.5],[108.7,13.4],[108.6,14.4]]
+            },
+            
+            // Tây Nguyên
+            { id: 'dalat', name: 'Lâm Đồng', type: 'province', region: 'Tây Nguyên',
+              lat: 11.94, lon: 108.44, area: 9765, population: 1.3,
+              features: ['Đà Lạt', 'Thành phố ngàn hoa', 'Cao nguyên', 'Khí hậu mát mẻ'],
+              coords: [[107.8,12.5],[108.8,12.5],[108.9,11.5],[107.9,11.4],[107.8,12.5]]
+            },
+            { id: 'gialai', name: 'Gia Lai', type: 'province', region: 'Tây Nguyên',
+              lat: 13.8, lon: 108.0, area: 15510, population: 1.5,
+              features: ['Pleiku', 'Biển Hồ', 'Cà phê', 'Cao nguyên bazan'],
+              coords: [[107.4,14.5],[108.6,14.5],[108.7,13.3],[107.5,13.2],[107.4,14.5]]
+            },
+            { id: 'daklak', name: 'Đắk Lắk', type: 'province', region: 'Tây Nguyên',
+              lat: 12.7, lon: 108.2, area: 13030, population: 1.9,
+              features: ['Buôn Ma Thuột', 'Cà phê', 'Voi', 'Cồng chiêng'],
+              coords: [[107.5,13.3],[108.7,13.3],[108.8,12.3],[107.6,12.2],[107.5,13.3]]
+            },
+            
+            // Nam Bộ
+            { id: 'binhduong', name: 'Bình Dương', type: 'province', region: 'Đông Nam Bộ',
+              lat: 11.0, lon: 106.65, area: 2695, population: 2.5,
+              features: ['Công nghiệp', 'FDI', 'Thủ Dầu Một', 'Đô thị mới'],
+              coords: [[106.3,11.4],[107.0,11.4],[107.1,10.9],[106.4,10.8],[106.3,11.4]]
+            },
+            { id: 'dongnai', name: 'Đồng Nai', type: 'province', region: 'Đông Nam Bộ',
+              lat: 11.0, lon: 107.2, area: 5908, population: 3.1,
+              features: ['Biên Hòa', 'Công nghiệp', 'Vườn quốc gia Cát Tiên'],
+              coords: [[106.9,11.5],[107.6,11.5],[107.7,10.8],[107.0,10.7],[106.9,11.5]]
+            },
+            { id: 'baria', name: 'Bà Rịa - Vũng Tàu', type: 'province', region: 'Đông Nam Bộ',
+              lat: 10.5, lon: 107.2, area: 1981, population: 1.1,
+              features: ['Vũng Tàu', 'Dầu khí', 'Biển', 'Côn Đảo'],
+              coords: [[107.0,10.8],[107.6,10.8],[107.7,10.3],[107.1,10.2],[107.0,10.8]]
+            },
+            { id: 'tiengiang', name: 'Tiền Giang', type: 'province', region: 'Đồng bằng sông Cửu Long',
+              lat: 10.35, lon: 106.35, area: 2510, population: 1.8,
+              features: ['Mỹ Tho', 'Cù lao Thới Sơn', 'Trái cây', 'Sông Tiền'],
+              coords: [[106.0,10.6],[106.7,10.6],[106.8,10.2],[106.1,10.1],[106.0,10.6]]
+            },
+            { id: 'angiang', name: 'An Giang', type: 'province', region: 'Đồng bằng sông Cửu Long',
+              lat: 10.5, lon: 105.2, area: 3537, population: 1.9,
+              features: ['Châu Đốc', 'Núi Sam', 'Biên giới Campuchia', 'Lúa gạo'],
+              coords: [[104.8,10.9],[105.5,10.9],[105.6,10.3],[104.9,10.2],[104.8,10.9]]
+            },
+            { id: 'kiengiang', name: 'Kiên Giang', type: 'province', region: 'Đồng bằng sông Cửu Long',
+              lat: 10.0, lon: 105.1, area: 6348, population: 1.8,
+              features: ['Phú Quốc', 'Hà Tiên', 'Biển đảo', 'Du lịch'],
+              coords: [[104.5,10.5],[105.3,10.5],[105.4,9.3],[104.0,9.2],[104.5,10.5]]
+            },
+            { id: 'camau', name: 'Cà Mau', type: 'province', region: 'Đồng bằng sông Cửu Long',
+              lat: 9.18, lon: 105.15, area: 5332, population: 1.2,
+              features: ['Mũi Cà Mau', 'Điểm cực Nam', 'Rừng ngập mặn', 'Tôm'],
+              coords: [[104.7,9.6],[105.5,9.6],[105.4,8.6],[104.8,8.5],[104.7,9.6]]
+            }
+        ];
+        
+        // Quần đảo
+        const ARCHIPELAGOS = [
+            { id: 'hoangsa', name: 'Quần đảo Hoàng Sa', type: 'archipelago', region: 'Biển Đông',
+              lat: 16.5, lon: 112.0, area: 8, population: 0,
+              features: ['Chủ quyền Việt Nam', 'Paracel Islands', 'Biển Đông', 'Ngư trường'],
+              islands: [
+                { name: 'Đảo Phú Lâm', lat: 16.84, lon: 112.34 },
+                { name: 'Đảo Tri Tôn', lat: 15.78, lon: 111.20 },
+                { name: 'Đảo Hoàng Sa', lat: 16.53, lon: 111.60 },
+                { name: 'Đảo Quang Ảnh', lat: 16.45, lon: 111.52 },
+                { name: 'Đảo Duy Mộng', lat: 16.47, lon: 111.75 }
+              ]
+            },
+            { id: 'truongsa', name: 'Quần đảo Trường Sa', type: 'archipelago', region: 'Biển Đông',
+              lat: 9.5, lon: 113.0, area: 5, population: 0,
+              features: ['Chủ quyền Việt Nam', 'Spratly Islands', 'Biển Đông', 'Chiến lược'],
+              islands: [
+                { name: 'Đảo Trường Sa Lớn', lat: 8.64, lon: 111.92 },
+                { name: 'Đảo Song Tử Tây', lat: 11.43, lon: 114.33 },
+                { name: 'Đảo Sinh Tồn', lat: 9.88, lon: 114.33 },
+                { name: 'Đảo Nam Yết', lat: 10.18, lon: 114.37 },
+                { name: 'Đảo Sơn Ca', lat: 10.38, lon: 114.48 }
+              ]
+            }
+        ];
+        
+        // Coastal islands
+        const COASTAL_ISLANDS = [
+            { name: 'Cát Bà', lat: 20.78, lon: 107.05, size: 140 },
+            { name: 'Cô Tô', lat: 21.05, lon: 107.77, size: 15 },
+            { name: 'Bạch Long Vĩ', lat: 20.13, lon: 107.72, size: 3 },
+            { name: 'Cồn Cỏ', lat: 17.18, lon: 107.33, size: 2 },
+            { name: 'Lý Sơn', lat: 15.37, lon: 109.13, size: 10 },
+            { name: 'Cù Lao Chàm', lat: 15.95, lon: 108.52, size: 15 },
+            { name: 'Côn Đảo', lat: 8.68, lon: 106.60, size: 52 },
+            { name: 'Phú Quốc', lat: 10.22, lon: 103.97, size: 574 },
+            { name: 'Phú Quý', lat: 10.52, lon: 108.93, size: 17 }
+        ];
+        
+        // Vietnam boundary
+        const VIETNAM_COORDS = [
+            [108.05018, 21.55238], [106.715068, 20.696851], [105.881682, 19.75205],
+            [105.662006, 19.058165], [106.426817, 18.004121], [107.361954, 16.697457],
+            [108.269495, 16.079742], [108.877107, 15.276691], [109.33527, 13.426028],
+            [109.200136, 11.666859], [108.36613, 11.008321], [107.220929, 10.364484],
+            [106.405113, 9.53084], [105.158264, 8.59976], [104.795185, 9.241038],
+            [105.076202, 9.918491], [104.334335, 10.486544], [105.199915, 10.88931],
+            [106.24967, 10.961812], [105.810524, 11.567615], [107.491403, 12.337206],
+            [107.614548, 13.535531], [107.382727, 14.202441], [107.564525, 15.202173],
+            [107.312706, 15.908538], [106.556008, 16.604284], [105.925762, 17.485315],
+            [105.094598, 18.666975], [103.896532, 19.265181], [104.183388, 19.624668],
+            [104.822574, 19.886642], [104.435, 20.758733], [103.203861, 20.766562],
+            [102.754896, 21.675137], [102.170436, 22.464753], [102.706992, 22.708795],
+            [103.504515, 22.703757], [104.476858, 22.81915], [105.329209, 23.352063],
+            [105.811247, 22.976892], [106.725403, 22.794268], [106.567273, 22.218205],
+            [107.04342, 21.811899], [108.05018, 21.55238]
+        ];
+        
+        // Global variables
+        let scene, camera, renderer;
+        let mapGroup, provinceMeshes = {};
+        let targetZoom = 1, currentZoom = 1;
+        let targetRotationX = 0.6, currentRotationX = 0.6;
+        let targetRotationY = 0, currentRotationY = 0;
+        let targetPosition = { x: 0, y: 0, z: 0 };
+        let currentPosition = { x: 0, y: 0, z: 0 };
+        let hands, handCamera;
+        let isDragging = false, previousMousePosition = { x: 0, y: 0 };
+        let lastPinchDistance = 0;
+        let raycaster, mouse;
+        let selectedProvince = null;
+        let viewMode = 'country'; // 'country' or 'province'
+        
+        const loadingStatus = document.getElementById('loading-status');
+        const tooltip = document.getElementById('tooltip');
+        const cameraStatus = document.getElementById('camera-status');
+        
+        // Initialize
+        init();
+        
+        async function init() {
+            loadingStatus.textContent = 'Khởi tạo scene 3D...';
+            initThree();
+            
+            loadingStatus.textContent = 'Tạo đại dương...';
+            createOcean();
+            
+            loadingStatus.textContent = 'Tạo bản đồ Việt Nam...';
+            createMap();
+            
+            loadingStatus.textContent = 'Tạo danh sách tỉnh thành...';
+            createProvinceList();
+            
+            loadingStatus.textContent = 'Thiết lập điều khiển...';
+            setupControls();
+            setupRaycaster();
+            
+            loadingStatus.textContent = 'Khởi tạo hand tracking...';
+            await initHandTracking();
+            
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 500);
+            
+            animate();
+        }
+        
+        function initThree() {
+            scene = new THREE.Scene();
+            
+            // Futuristic background
+            const bgGeo = new THREE.SphereGeometry(100, 64, 64);
+            const bgMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    color1: { value: new THREE.Color(0x0a0a1a) },
+                    color2: { value: new THREE.Color(0x1a1a3a) },
+                    color3: { value: new THREE.Color(0x2a1a4a) }
+                },
+                vertexShader: `
+                    varying vec3 vPosition;
+                    void main() {
+                        vPosition = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    uniform vec3 color1;
+                    uniform vec3 color2;
+                    uniform vec3 color3;
+                    varying vec3 vPosition;
+                    
+                    void main() {
+                        float y = normalize(vPosition).y;
+                        vec3 color = mix(color1, color2, smoothstep(-0.5, 0.0, y));
+                        color = mix(color, color3, smoothstep(0.0, 0.5, y));
+                        
+                        // Add subtle stars
+                        float star = step(0.998, fract(sin(dot(vPosition.xy, vec2(12.9898, 78.233))) * 43758.5453));
+                        color += star * 0.5;
+                        
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                `,
+                side: THREE.BackSide
+            });
+            const bg = new THREE.Mesh(bgGeo, bgMat);
+            scene.add(bg);
+            
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 12);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            document.getElementById('app').appendChild(renderer.domElement);
+            
+            mapGroup = new THREE.Group();
+            scene.add(mapGroup);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x4040ff, 0.4);
+            scene.add(ambientLight);
+            
+            const mainLight = new THREE.DirectionalLight(0x00f5d4, 1.0);
+            mainLight.position.set(10, 15, 10);
+            mainLight.castShadow = true;
+            scene.add(mainLight);
+            
+            const accentLight = new THREE.PointLight(0xf15bb5, 0.8, 30);
+            accentLight.position.set(-5, 10, -5);
+            scene.add(accentLight);
+            
+            const accentLight2 = new THREE.PointLight(0x7b2cbf, 0.6, 25);
+            accentLight2.position.set(5, 8, 5);
+            scene.add(accentLight2);
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        
+        function createOcean() {
+            const oceanGeo = new THREE.PlaneGeometry(60, 60, 128, 128);
+            const oceanMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    color1: { value: new THREE.Color(0x0a1a3a) },
+                    color2: { value: new THREE.Color(0x1a3a5a) },
+                    glowColor: { value: new THREE.Color(0x00f5d4) }
+                },
+                vertexShader: `
+                    uniform float time;
+                    varying vec2 vUv;
+                    varying float vElevation;
+                    
+                    void main() {
+                        vUv = uv;
+                        vec3 pos = position;
+                        
+                        float wave = sin(pos.x * 3.0 + time) * 0.02;
+                        wave += sin(pos.y * 2.0 + time * 1.3) * 0.015;
+                        wave += sin((pos.x + pos.y) * 2.0 + time * 0.7) * 0.01;
+                        
+                        pos.z = wave;
+                        vElevation = wave;
+                        
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 color1;
+                    uniform vec3 color2;
+                    uniform vec3 glowColor;
+                    uniform float time;
+                    varying vec2 vUv;
+                    varying float vElevation;
+                    
+                    void main() {
+                        vec3 color = mix(color1, color2, vUv.y);
+                        
+                        // Grid lines
+                        float gridX = abs(sin(vUv.x * 100.0));
+                        float gridY = abs(sin(vUv.y * 100.0));
+                        float grid = step(0.98, max(gridX, gridY)) * 0.1;
+                        
+                        color += glowColor * grid;
+                        color += glowColor * (vElevation + 0.03) * 2.0;
+                        
+                        gl_FragColor = vec4(color, 0.95);
+                    }
+                `,
+                transparent: true
+            });
+            
+            const ocean = new THREE.Mesh(oceanGeo, oceanMat);
+            ocean.rotation.x = -Math.PI / 2;
+            ocean.position.y = -0.1;
+            ocean.name = 'ocean';
+            scene.add(ocean);
+        }
+        
+        function createMap() {
+            // Calculate bounds
+            let minLon = Infinity, maxLon = -Infinity;
+            let minLat = Infinity, maxLat = -Infinity;
+            
+            VIETNAM_COORDS.forEach(coord => {
+                minLon = Math.min(minLon, coord[0]);
+                maxLon = Math.max(maxLon, coord[0]);
+                minLat = Math.min(minLat, coord[1]);
+                maxLat = Math.max(maxLat, coord[1]);
+            });
+            
+            const centerLon = (minLon + maxLon) / 2;
+            const centerLat = (minLat + maxLat) / 2;
+            const scale = 0.35;
+            
+            window.mapCenter = { lat: centerLat, lon: centerLon, scale: scale };
+            
+            // Create main Vietnam shape (base layer)
+            const mainShape = new THREE.Shape();
+            VIETNAM_COORDS.forEach((coord, i) => {
+                const x = (coord[0] - centerLon) * scale;
+                const y = (coord[1] - centerLat) * scale;
+                if (i === 0) mainShape.moveTo(x, y);
+                else mainShape.lineTo(x, y);
+            });
+            mainShape.closePath();
+            
+            const extrudeSettings = {
+                steps: 2,
+                depth: 0.1,
+                bevelEnabled: true,
+                bevelThickness: 0.02,
+                bevelSize: 0.02,
+                bevelSegments: 3
+            };
+            
+            const mainGeo = new THREE.ExtrudeGeometry(mainShape, extrudeSettings);
+            mainGeo.rotateX(-Math.PI / 2);
+            
+            const mainMat = new THREE.MeshStandardMaterial({
+                color: 0x1a3a4a,
+                emissive: 0x0a1a2a,
+                roughness: 0.7,
+                metalness: 0.3
+            });
+            
+            const mainMesh = new THREE.Mesh(mainGeo, mainMat);
+            mainMesh.receiveShadow = true;
+            mainMesh.name = 'mainLand';
+            mapGroup.add(mainMesh);
+            
+            // Create provinces
+            PROVINCES.forEach(province => {
+                createProvinceMesh(province, centerLat, centerLon, scale);
+            });
+            
+            // Create archipelagos
+            ARCHIPELAGOS.forEach(archipelago => {
+                createArchipelago(archipelago, centerLat, centerLon, scale);
+            });
+            
+            // Create coastal islands
+            COASTAL_ISLANDS.forEach(island => {
+                createCoastalIsland(island, centerLat, centerLon, scale);
+            });
+            
+            // Glowing border
+            const borderPoints = VIETNAM_COORDS.map(coord => {
+                const x = (coord[0] - centerLon) * scale;
+                const z = -(coord[1] - centerLat) * scale;
+                return new THREE.Vector3(x, 0.15, z);
+            });
+            borderPoints.push(borderPoints[0].clone());
+            
+            const borderGeo = new THREE.BufferGeometry().setFromPoints(borderPoints);
+            const borderMat = new THREE.LineBasicMaterial({
+                color: 0x00f5d4,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.8
+            });
+            const border = new THREE.Line(borderGeo, borderMat);
+            border.name = 'border';
+            mapGroup.add(border);
+        }
+        
+        function createProvinceMesh(province, centerLat, centerLon, scale) {
+            const x = (province.lon - centerLon) * scale;
+            const z = -(province.lat - centerLat) * scale;
+            
+            // Determine color based on type
+            let color, emissive, markerSize;
+            switch (province.type) {
+                case 'capital':
+                    color = 0xfee440;
+                    emissive = 0x665500;
+                    markerSize = 0.08;
+                    break;
+                case 'major':
+                    color = 0xf15bb5;
+                    emissive = 0x550033;
+                    markerSize = 0.06;
+                    break;
+                default:
+                    color = 0x00f5d4;
+                    emissive = 0x004433;
+                    markerSize = 0.04;
+            }
+            
+            // Province marker (hexagonal)
+            const markerGeo = new THREE.CylinderGeometry(markerSize, markerSize * 0.8, 0.15, 6);
+            const markerMat = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: emissive,
+                roughness: 0.3,
+                metalness: 0.7,
+                transparent: true,
+                opacity: 0.9
+            });
+            const marker = new THREE.Mesh(markerGeo, markerMat);
+            marker.position.set(x, 0.2, z);
+            marker.castShadow = true;
+            marker.name = 'provinceMarker';
+            marker.userData = { 
+                province: province,
+                type: 'province',
+                originalColor: color,
+                originalEmissive: emissive
+            };
+            mapGroup.add(marker);
+            provinceMeshes[province.id] = marker;
+            
+            // Glow ring
+            const ringGeo = new THREE.RingGeometry(markerSize * 1.2, markerSize * 1.6, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.set(x, 0.11, z);
+            ring.name = 'provinceRing';
+            ring.userData = { pulsePhase: Math.random() * Math.PI * 2, color: color };
+            mapGroup.add(ring);
+            
+            // Beam for capital/major cities
+            if (province.type === 'capital' || province.type === 'major') {
+                const beamGeo = new THREE.CylinderGeometry(0.005, 0.02, 0.5, 8);
+                const beamMat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const beam = new THREE.Mesh(beamGeo, beamMat);
+                beam.position.set(x, 0.5, z);
+                mapGroup.add(beam);
+            }
+        }
+        
+        function createArchipelago(archipelago, centerLat, centerLon, scale) {
+            const centerX = (archipelago.lon - centerLon) * scale;
+            const centerZ = -(archipelago.lat - centerLat) * scale;
+            
+            const group = new THREE.Group();
+            group.name = archipelago.id;
+            
+            // Create islands
+            archipelago.islands.forEach((island, idx) => {
+                const x = (island.lon - centerLon) * scale;
+                const z = -(island.lat - centerLat) * scale;
+                
+                // Island mesh
+                const islandGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.08, 8);
+                const islandMat = new THREE.MeshStandardMaterial({
+                    color: 0xfee440,
+                    emissive: 0x664400,
+                    roughness: 0.4,
+                    metalness: 0.6
+                });
+                const islandMesh = new THREE.Mesh(islandGeo, islandMat);
+                islandMesh.position.set(x, 0.04, z);
+                islandMesh.castShadow = true;
+                group.add(islandMesh);
+                
+                // Glow point
+                const glowGeo = new THREE.SphereGeometry(0.02, 8, 8);
+                const glowMat = new THREE.MeshBasicMaterial({
+                    color: 0xfee440,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const glow = new THREE.Mesh(glowGeo, glowMat);
+                glow.position.set(x, 0.1, z);
+                glow.name = 'islandGlow';
+                glow.userData = { pulsePhase: idx * 0.5 };
+                group.add(glow);
+            });
+            
+            // Sovereignty boundary
+            const boundaryGeo = new THREE.RingGeometry(0.3, 0.32, 32);
+            const boundaryMat = new THREE.MeshBasicMaterial({
+                color: 0xfee440,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.DoubleSide
+            });
+            const boundary = new THREE.Mesh(boundaryGeo, boundaryMat);
+            boundary.rotation.x = -Math.PI / 2;
+            boundary.position.set(centerX, 0.02, centerZ);
+            boundary.name = 'sovereigntyBoundary';
+            group.add(boundary);
+            
+            // Flag pole and Vietnam flag
+            const poleGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.6, 8);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.set(centerX, 0.3, centerZ);
+            group.add(pole);
+            
+            // Flag (simplified)
+            const flagGeo = new THREE.PlaneGeometry(0.15, 0.1);
+            const flagMat = new THREE.MeshBasicMaterial({ color: 0xda251d, side: THREE.DoubleSide });
+            const flag = new THREE.Mesh(flagGeo, flagMat);
+            flag.position.set(centerX + 0.08, 0.55, centerZ);
+            flag.name = 'flag';
+            group.add(flag);
+            
+            // Clickable marker
+            const markerGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.12, 6);
+            const markerMat = new THREE.MeshStandardMaterial({
+                color: 0xfee440,
+                emissive: 0x665500,
+                transparent: true,
+                opacity: 0.8
+            });
+            const marker = new THREE.Mesh(markerGeo, markerMat);
+            marker.position.set(centerX, 0.15, centerZ);
+            marker.name = 'archipelagoMarker';
+            marker.userData = {
+                province: {
+                    id: archipelago.id,
+                    name: archipelago.name,
+                    type: 'archipelago',
+                    region: archipelago.region,
+                    area: archipelago.area,
+                    population: archipelago.population,
+                    features: archipelago.features,
+                    lat: archipelago.lat,
+                    lon: archipelago.lon
+                },
+                type: 'archipelago',
+                originalColor: 0xfee440,
+                originalEmissive: 0x665500
+            };
+            group.add(marker);
+            provinceMeshes[archipelago.id] = marker;
+            
+            // Connection line to mainland
+            const linePoints = [
+                new THREE.Vector3(centerX * 0.3, 0.05, centerZ * 0.5),
+                new THREE.Vector3(centerX, 0.05, centerZ)
+            ];
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+            const lineMat = new THREE.LineDashedMaterial({
+                color: 0xfee440,
+                dashSize: 0.08,
+                gapSize: 0.04,
+                transparent: true,
+                opacity: 0.4
+            });
+            const line = new THREE.Line(lineGeo, lineMat);
+            line.computeLineDistances();
+            group.add(line);
+            
+            mapGroup.add(group);
+        }
+        
+        function createCoastalIsland(island, centerLat, centerLon, scale) {
+            const x = (island.lon - centerLon) * scale;
+            const z = -(island.lat - centerLat) * scale;
+            
+            const size = Math.max(0.015, Math.min(0.08, Math.sqrt(island.size) * 0.005));
+            
+            const islandGeo = new THREE.CylinderGeometry(size, size * 1.2, 0.06, 8);
+            const islandMat = new THREE.MeshStandardMaterial({
+                color: 0x00f5d4,
+                emissive: 0x003322,
+                roughness: 0.5,
+                metalness: 0.5
+            });
+            const islandMesh = new THREE.Mesh(islandGeo, islandMat);
+            islandMesh.position.set(x, 0.03, z);
+            islandMesh.castShadow = true;
+            islandMesh.name = 'coastalIsland';
+            islandMesh.userData = {
+                type: 'island',
+                name: island.name,
+                info: `Diện tích: ~${island.size} km²`
+            };
+            mapGroup.add(islandMesh);
+            
+            // Glow
+            const glowGeo = new THREE.SphereGeometry(size * 0.5, 8, 8);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0x00f5d4,
+                transparent: true,
+                opacity: 0.6
+            });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            glow.position.set(x, 0.08, z);
+            glow.name = 'islandGlow';
+            glow.userData = { pulsePhase: Math.random() * Math.PI * 2 };
+            mapGroup.add(glow);
+        }
+        
+        function createProvinceList() {
+            const listContainer = document.getElementById('province-list');
+            
+            const regions = {
+                'Thủ đô & TP trực thuộc TW': PROVINCES.filter(p => p.type === 'capital' || p.type === 'major'),
+                'Quần đảo': ARCHIPELAGOS,
+                'Miền Bắc': PROVINCES.filter(p => p.region.includes('Bắc') && p.type === 'province'),
+                'Miền Trung & Tây Nguyên': PROVINCES.filter(p => (p.region.includes('Trung') || p.region.includes('Tây Nguyên')) && p.type === 'province'),
+                'Miền Nam': PROVINCES.filter(p => (p.region.includes('Nam') || p.region.includes('Cửu Long')) && p.type === 'province')
+            };
+            
+            Object.entries(regions).forEach(([regionName, provinces]) => {
+                if (provinces.length === 0) return;
+                
+                const regionDiv = document.createElement('div');
+                regionDiv.className = 'region-group';
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'region-title';
+                titleDiv.textContent = regionName;
+                regionDiv.appendChild(titleDiv);
+                
+                provinces.forEach(province => {
+                    const item = document.createElement('div');
+                    item.className = 'province-item';
+                    if (province.type === 'capital') item.classList.add('capital');
+                    if (province.type === 'major') item.classList.add('major-city');
+                    
+                    item.innerHTML = `
+                        <div class="province-dot"></div>
+                        <span>${province.name}</span>
+                    `;
+                    
+                    item.addEventListener('click', () => selectProvince(province.id));
+                    item.dataset.id = province.id;
+                    item.dataset.name = province.name.toLowerCase();
+                    
+                    regionDiv.appendChild(item);
+                });
+                
+                listContainer.appendChild(regionDiv);
+            });
+            
+            // Search functionality
+            document.getElementById('search-box').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                document.querySelectorAll('.province-item').forEach(item => {
+                    const match = item.dataset.name.includes(query);
+                    item.style.display = match ? 'flex' : 'none';
+                });
+            });
+            
+            // Toggle panel
+            document.getElementById('toggle-panel').addEventListener('click', () => {
+                const panel = document.getElementById('province-panel');
+                panel.classList.toggle('collapsed');
+                document.getElementById('toggle-panel').textContent = 
+                    panel.classList.contains('collapsed') ? '▶' : '◀';
+            });
+            
+            // Close detail
+            document.getElementById('close-detail').addEventListener('click', () => {
+                deselectProvince();
+            });
+            
+            document.getElementById('back-to-map').addEventListener('click', () => {
+                deselectProvince();
+            });
+        }
+        
+        function selectProvince(provinceId) {
+            const province = [...PROVINCES, ...ARCHIPELAGOS].find(p => p.id === provinceId);
+            if (!province) return;
+            
+            // Update selection state
+            document.querySelectorAll('.province-item').forEach(item => {
+                item.classList.toggle('selected', item.dataset.id === provinceId);
+            });
+            
+            // Update detail panel
+            document.getElementById('detail-name').textContent = province.name;
+            document.getElementById('detail-type').textContent = 
+                province.type === 'capital' ? 'Thủ đô' :
+                province.type === 'major' ? 'Thành phố trực thuộc TW' :
+                province.type === 'archipelago' ? 'Quần đảo - Chủ quyền Việt Nam' : 'Tỉnh';
+            document.getElementById('detail-area').textContent = province.area.toLocaleString() + ' km²';
+            document.getElementById('detail-population').textContent = 
+                province.population > 0 ? province.population.toFixed(1) + ' triệu' : 'Đồn trú quân sự';
+            document.getElementById('detail-region').textContent = province.region;
+            document.getElementById('detail-density').textContent = 
+                province.population > 0 ? 
+                Math.round((province.population * 1000000) / province.area).toLocaleString() + ' người/km²' : '--';
+            
+            const tagsContainer = document.getElementById('detail-tags');
+            tagsContainer.innerHTML = province.features.map(f => 
+                `<span class="feature-tag">${f}</span>`
+            ).join('');
+            
+            document.getElementById('detail-panel').classList.add('active');
+            
+            // Highlight on map
+            if (selectedProvince && provinceMeshes[selectedProvince]) {
+                const prevMesh = provinceMeshes[selectedProvince];
+                prevMesh.material.color.setHex(prevMesh.userData.originalColor);
+                prevMesh.material.emissive.setHex(prevMesh.userData.originalEmissive);
+                prevMesh.scale.setScalar(1);
+            }
+            
+            selectedProvince = provinceId;
+            const mesh = provinceMeshes[provinceId];
+            if (mesh) {
+                mesh.material.color.setHex(0xffffff);
+                mesh.material.emissive.setHex(0x7b2cbf);
+                mesh.scale.setScalar(1.5);
+            }
+            
+            // Zoom to province
+            const { lat: centerLat, lon: centerLon, scale } = window.mapCenter;
+            targetPosition.x = -(province.lon - centerLon) * scale;
+            targetPosition.z = (province.lat - centerLat) * scale;
+            targetZoom = province.type === 'archipelago' ? 1.5 : 2;
+            
+            viewMode = 'province';
+            document.getElementById('view-mode').textContent = province.name.toUpperCase();
+        }
+        
+        function deselectProvince() {
+            if (selectedProvince && provinceMeshes[selectedProvince]) {
+                const mesh = provinceMeshes[selectedProvince];
+                mesh.material.color.setHex(mesh.userData.originalColor);
+                mesh.material.emissive.setHex(mesh.userData.originalEmissive);
+                mesh.scale.setScalar(1);
+            }
+            
+            selectedProvince = null;
+            document.querySelectorAll('.province-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            document.getElementById('detail-panel').classList.remove('active');
+            
+            // Reset view
+            targetPosition = { x: 0, y: 0, z: 0 };
+            targetZoom = 1;
+            targetRotationX = 0.6;
+            targetRotationY = 0;
+            
+            viewMode = 'country';
+            document.getElementById('view-mode').textContent = 'TOÀN QUỐC';
+        }
+        
+        function setupControls() {
+            const canvas = renderer.domElement;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    
+                    targetRotationY += deltaX * 0.005;
+                    targetRotationX = Math.max(0.1, Math.min(1.3, targetRotationX + deltaY * 0.005));
+                    
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
+                
+                checkHover(e);
+            });
+            
+            canvas.addEventListener('mouseup', () => { isDragging = false; });
+            canvas.addEventListener('mouseleave', () => { 
+                isDragging = false;
+                hideTooltip();
+            });
+            
+            canvas.addEventListener('click', (e) => {
+                if (!isDragging) {
+                    handleClick();
+                }
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                targetZoom = Math.max(0.5, Math.min(4, targetZoom - e.deltaY * 0.001));
+            });
+            
+            // Touch controls
+            let lastTouchDistance = 0;
+            
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                } else if (e.touches.length === 2) {
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+                }
+            });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 1 && isDragging) {
+                    const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                    const deltaY = e.touches[0].clientY - previousMousePosition.y;
+                    
+                    targetRotationY += deltaX * 0.005;
+                    targetRotationX = Math.max(0.1, Math.min(1.3, targetRotationX + deltaY * 0.005));
+                    
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                } else if (e.touches.length === 2) {
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (lastTouchDistance > 0) {
+                        const delta = distance - lastTouchDistance;
+                        targetZoom = Math.max(0.5, Math.min(4, targetZoom + delta * 0.005));
+                    }
+                    lastTouchDistance = distance;
+                }
+            });
+            
+            canvas.addEventListener('touchend', () => {
+                isDragging = false;
+                lastTouchDistance = 0;
+            });
+        }
+        
+        function setupRaycaster() {
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+        }
+        
+        function checkHover(event) {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(mapGroup.children, true);
+            
+            let found = false;
+            for (const intersect of intersects) {
+                const obj = intersect.object;
+                if (obj.userData && (obj.userData.province || obj.userData.name)) {
+                    found = true;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (event.clientX + 15) + 'px';
+                    tooltip.style.top = (event.clientY + 15) + 'px';
+                    
+                    if (obj.userData.province) {
+                        const p = obj.userData.province;
+                        tooltip.querySelector('.name').textContent = p.name;
+                        tooltip.querySelector('.info').textContent = p.region + ' • ' + p.area.toLocaleString() + ' km²';
+                        tooltip.querySelector('.click-hint').style.display = 'block';
+                    } else {
+                        tooltip.querySelector('.name').textContent = obj.userData.name;
+                        tooltip.querySelector('.info').textContent = obj.userData.info || '';
+                        tooltip.querySelector('.click-hint').style.display = 'none';
+                    }
+                    break;
+                }
+            }
+            
+            if (!found) {
+                hideTooltip();
+            }
+        }
+        
+        function handleClick() {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(mapGroup.children, true);
+            
+            for (const intersect of intersects) {
+                const obj = intersect.object;
+                if (obj.userData && obj.userData.province) {
+                    selectProvince(obj.userData.province.id);
+                    return;
+                }
+            }
+        }
+        
+        function hideTooltip() {
+            tooltip.style.display = 'none';
+        }
+        
+        // Hand tracking
+        let lastTwoHandDistance = 0;
+        let lastHandPositions = [null, null];
+        
+        async function initHandTracking() {
+            try {
+                hands = new Hands({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`
+                });
+                
+                hands.setOptions({
+                    maxNumHands: 2,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.5
+                });
+                
+                hands.onResults(onHandResults);
+                
+                const video = document.getElementById('webcam');
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: 320, height: 240 }
+                });
+                video.srcObject = stream;
+                
+                handCamera = new Camera(video, {
+                    onFrame: async () => {
+                        if (hands) await hands.send({ image: video });
+                    },
+                    width: 320,
+                    height: 240
+                });
+                
+                await handCamera.start();
+                cameraStatus.textContent = 'Camera: ✓';
+                cameraStatus.style.color = '#00f5d4';
+            } catch (err) {
+                console.log('Hand tracking unavailable:', err);
+                cameraStatus.textContent = 'Camera: ✗';
+                cameraStatus.style.color = '#f15bb5';
+            }
+        }
+        
+        function onHandResults(results) {
+            const handCanvas = document.getElementById('hand-canvas');
+            const handCtx = handCanvas.getContext('2d');
+            
+            handCanvas.width = 180;
+            handCanvas.height = 135;
+            
+            handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+            
+            const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+            
+            if (numHands === 0) {
+                lastTwoHandDistance = 0;
+                lastHandPositions = [null, null];
+                return;
+            }
+            
+            // Draw hands
+            results.multiHandLandmarks.forEach((landmarks, idx) => {
+                const color = idx === 0 ? '#00f5d4' : '#f15bb5';
+                drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, { color: color, lineWidth: 1 });
+                drawLandmarks(handCtx, landmarks, { color: '#fee440', lineWidth: 1, radius: 2 });
+            });
+            
+            // Two-hand gestures
+            if (numHands === 2) {
+                cameraStatus.textContent = 'Camera: ✓ (2 tay)';
+                
+                const hand1 = results.multiHandLandmarks[0];
+                const hand2 = results.multiHandLandmarks[1];
+                const palm1 = hand1[0];
+                const palm2 = hand2[0];
+                
+                const twoHandDist = Math.hypot(palm1.x - palm2.x, palm1.y - palm2.y);
+                
+                const fingers1 = countFingers(hand1);
+                const fingers2 = countFingers(hand2);
+                const pinch1 = getPinch(hand1);
+                const pinch2 = getPinch(hand2);
+                
+                if (pinch1 < 0.08 && pinch2 < 0.08) {
+                    // Two-hand zoom
+                    if (lastTwoHandDistance > 0) {
+                        const delta = twoHandDist - lastTwoHandDistance;
+                        targetZoom = Math.max(0.5, Math.min(4, targetZoom + delta * 3));
+                    }
+                    lastTwoHandDistance = twoHandDist;
+                } else if (fingers1 >= 4 && fingers2 >= 4) {
+                    // Two-hand rotation
+                    const centerX = (palm1.x + palm2.x) / 2;
+                    const centerY = (palm1.y + palm2.y) / 2;
+                    
+                    targetRotationY += (centerX - 0.5) * 0.03;
+                    targetRotationX = Math.max(0.1, Math.min(1.3, targetRotationX + (centerY - 0.5) * 0.02));
+                    
+                    if (lastHandPositions[0] && lastHandPositions[1]) {
+                        const angle = Math.atan2(palm2.y - palm1.y, palm2.x - palm1.x);
+                        const lastAngle = Math.atan2(
+                            lastHandPositions[1].y - lastHandPositions[0].y,
+                            lastHandPositions[1].x - lastHandPositions[0].x
+                        );
+                        const angleDelta = angle - lastAngle;
+                        if (Math.abs(angleDelta) < 0.5) {
+                            targetRotationY += angleDelta * 0.5;
+                        }
+                    }
+                    
+                    lastHandPositions = [{ x: palm1.x, y: palm1.y }, { x: palm2.x, y: palm2.y }];
+                    lastTwoHandDistance = twoHandDist;
+                } else if (fingers1 === 0 && fingers2 === 0) {
+                    // Reset
+                    deselectProvince();
+                    lastTwoHandDistance = 0;
+                }
+            } else {
+                cameraStatus.textContent = 'Camera: ✓ (1 tay)';
+                lastTwoHandDistance = 0;
+                lastHandPositions = [null, null];
+                
+                const landmarks = results.multiHandLandmarks[0];
+                const palm = landmarks[0];
+                const pinchDist = getPinch(landmarks);
+                const fingers = countFingers(landmarks);
+                
+                if (pinchDist < 0.08) {
+                    if (lastPinchDistance > 0) {
+                        const delta = lastPinchDistance - pinchDist;
+                        targetZoom = Math.max(0.5, Math.min(4, targetZoom + delta * 5));
+                    }
+                    lastPinchDistance = pinchDist;
+                } else if (fingers >= 4) {
+                    lastPinchDistance = 0;
+                    targetRotationY += (palm.x - 0.5) * 0.05;
+                    targetRotationX = Math.max(0.1, Math.min(1.3, targetRotationX + (palm.y - 0.5) * 0.03));
+                } else if (fingers === 0) {
+                    lastPinchDistance = 0;
+                    deselectProvince();
+                } else {
+                    lastPinchDistance = 0;
+                }
+            }
+        }
+        
+        function getPinch(landmarks) {
+            return Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
+        }
+        
+        function countFingers(landmarks) {
+            return [
+                landmarks[8].y < landmarks[6].y,
+                landmarks[12].y < landmarks[10].y,
+                landmarks[16].y < landmarks[14].y,
+                landmarks[20].y < landmarks[18].y
+            ].filter(Boolean).length;
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Smooth transitions
+            currentZoom += (targetZoom - currentZoom) * 0.06;
+            currentRotationX += (targetRotationX - currentRotationX) * 0.06;
+            currentRotationY += (targetRotationY - currentRotationY) * 0.06;
+            currentPosition.x += (targetPosition.x - currentPosition.x) * 0.06;
+            currentPosition.z += (targetPosition.z - currentPosition.z) * 0.06;
+            
+            mapGroup.scale.setScalar(currentZoom);
+            mapGroup.rotation.x = currentRotationX;
+            mapGroup.rotation.y = currentRotationY;
+            mapGroup.position.x = currentPosition.x;
+            mapGroup.position.z = currentPosition.z;
+            
+            // Update ocean
+            const ocean = scene.getObjectByName('ocean');
+            if (ocean && ocean.material.uniforms) {
+                ocean.material.uniforms.time.value = time;
+            }
+            
+            // Animate elements
+            mapGroup.traverse(child => {
+                if (child.name === 'provinceRing' && child.userData.pulsePhase !== undefined) {
+                    const pulse = Math.sin(time * 2 + child.userData.pulsePhase) * 0.5 + 0.5;
+                    child.scale.setScalar(0.9 + pulse * 0.3);
+                    child.material.opacity = 0.2 + pulse * 0.2;
+                }
+                
+                if (child.name === 'islandGlow' && child.userData.pulsePhase !== undefined) {
+                    const pulse = Math.sin(time * 3 + child.userData.pulsePhase) * 0.5 + 0.5;
+                    child.scale.setScalar(0.8 + pulse * 0.4);
+                    child.material.opacity = 0.5 + pulse * 0.3;
+                }
+                
+                if (child.name === 'flag') {
+                    child.rotation.y = Math.sin(time * 2) * 0.15;
+                    child.position.x = child.position.x + Math.sin(time * 4) * 0.001;
+                }
+                
+                if (child.name === 'sovereigntyBoundary') {
+                    const pulse = Math.sin(time * 1.5) * 0.5 + 0.5;
+                    child.material.opacity = 0.15 + pulse * 0.15;
+                }
+                
+                if (child.name === 'border') {
+                    child.material.opacity = 0.5 + Math.sin(time * 2) * 0.3;
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

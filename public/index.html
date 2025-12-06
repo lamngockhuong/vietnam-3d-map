@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bản đồ 3D Việt Nam - Chọn Style</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00f5d4;
+            --secondary: #7b2cbf;
+            --accent: #f15bb5;
+            --accent2: #fee440;
+            --bg-dark: #0a0a1a;
+            --bg-medium: #12122a;
+            --text: #e0e0ff;
+            --glass: rgba(20, 20, 50, 0.7);
+        }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            color: var(--text);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary), var(--primary));
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient 5s linear infinite;
+            margin-bottom: 15px;
+            letter-spacing: 3px;
+        }
+
+        @keyframes gradient {
+            to { background-position: 300% center; }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        /* Style Grid */
+        .styles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .style-card {
+            background: rgba(20, 20, 50, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 245, 212, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out backwards;
+        }
+
+        .style-card:nth-child(1) { animation-delay: 0.1s; }
+        .style-card:nth-child(2) { animation-delay: 0.2s; }
+        .style-card:nth-child(3) { animation-delay: 0.3s; }
+        .style-card:nth-child(4) { animation-delay: 0.4s; }
+        .style-card:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .style-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 245, 212, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .style-card:hover::before {
+            left: 100%;
+        }
+
+        .style-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 245, 212, 0.3),
+                        0 0 60px rgba(123, 44, 191, 0.2);
+        }
+
+        .style-card:active {
+            transform: translateY(-5px) scale(1.01);
+        }
+
+        .style-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            display: block;
+            filter: drop-shadow(0 0 10px rgba(0, 245, 212, 0.5));
+            transition: transform 0.3s;
+        }
+
+        .style-card:hover .style-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .style-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+
+        .style-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+
+        .style-description {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .style-features {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .style-features li {
+            font-size: 0.85rem;
+            padding: 5px 0;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .style-features li::before {
+            content: '▸';
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .style-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .style-link::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .style-link:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .style-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 245, 212, 0.4);
+        }
+
+        .style-link span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            padding: 30px 0;
+            opacity: 0.6;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .styles-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .style-card {
+                padding: 20px;
+            }
+        }
+
+        /* Loading overlay for navigation */
+        .nav-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-dark);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+
+        .nav-loading.active {
+            display: flex;
+        }
+
+        .nav-loader {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(0, 245, 212, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .nav-loading-text {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            color: var(--primary);
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="nav-loading" id="navLoading">
+        <div class="nav-loader"></div>
+        <div class="nav-loading-text">Đang tải bản đồ...</div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>BẢN ĐỒ 3D VIỆT NAM</h1>
+            <p>Chọn style bản đồ bạn muốn xem</p>
+        </div>
+
+        <div class="styles-grid">
+            <!-- Futuristic Style -->
+            <div class="style-card" data-style="futuristic">
+                <div class="style-icon">🚀</div>
+                <div class="style-title">Futuristic</div>
+                <div class="style-subtitle">Phong cách tương lai</div>
+                <div class="style-description">
+                    Bản đồ 3D với thiết kế hiện đại, màu sắc neon và hiệu ứng ánh sáng tương lai.
+                    Trải nghiệm tương tác với công nghệ tiên tiến.
+                </div>
+                <ul class="style-features">
+                    <li>Hiệu ứng neon và ánh sáng</li>
+                    <li>Giao diện hiện đại</li>
+                    <li>Tương tác mượt mà</li>
+                </ul>
+                <a href="futuristic.html" class="style-link" data-file="futuristic.html">
+                    <span>Xem bản đồ →</span>
+                </a>
+            </div>
+
+            <!-- Terrain Style -->
+            <div class="style-card" data-style="terrain">
+                <div class="style-icon">⛰️</div>
+                <div class="style-title">Terrain</div>
+                <div class="style-subtitle">Địa hình 34 tỉnh thành</div>
+                <div class="style-description">
+                    Bản đồ địa hình chi tiết với 34 tỉnh thành của Việt Nam.
+                    Hiển thị địa hình tự nhiên và ranh giới hành chính rõ ràng.
+                </div>
+                <ul class="style-features">
+                    <li>Địa hình 3D chi tiết</li>
+                    <li>34 tỉnh thành</li>
+                    <li>Ranh giới hành chính</li>
+                </ul>
+                <a href="3d-terrain.html" class="style-link" data-file="3d-terrain.html">
+                    <span>Xem bản đồ →</span>
+                </a>
+            </div>
+
+            <!-- Realistic Style -->
+            <div class="style-card" data-style="realistic">
+                <div class="style-icon">🌍</div>
+                <div class="style-title">Realistic</div>
+                <div class="style-subtitle">Bản đồ thực tế</div>
+                <div class="style-description">
+                    Bản đồ 3D với phong cách chân thực, mô phỏng địa hình và cảnh quan
+                    tự nhiên của Việt Nam một cách sống động.
+                </div>
+                <ul class="style-features">
+                    <li>Màu sắc tự nhiên</li>
+                    <li>Địa hình chân thực</li>
+                    <li>Trải nghiệm sống động</li>
+                </ul>
+                <a href="3d-realistic-map.html" class="style-link" data-file="3d-realistic-map.html">
+                    <span>Xem bản đồ →</span>
+                </a>
+            </div>
+
+            <!-- 2025 Style -->
+            <div class="style-card" data-style="2025">
+                <div class="style-icon">✨</div>
+                <div class="style-title">2025 Edition</div>
+                <div class="style-subtitle">Phiên bản 2025</div>
+                <div class="style-description">
+                    Bản đồ 3D phiên bản 2025 với 34 tỉnh thành, được cập nhật với
+                    dữ liệu mới nhất và công nghệ hiện đại.
+                </div>
+                <ul class="style-features">
+                    <li>Dữ liệu cập nhật 2025</li>
+                    <li>34 tỉnh thành</li>
+                    <li>Công nghệ mới nhất</li>
+                </ul>
+                <a href="3d-map-2025.html" class="style-link" data-file="3d-map-2025.html">
+                    <span>Xem bản đồ →</span>
+                </a>
+            </div>
+
+            <!-- Holographic Style -->
+            <div class="style-card" data-style="holographic">
+                <div class="style-icon">💎</div>
+                <div class="style-title">Holographic</div>
+                <div class="style-subtitle">Hiệu ứng hologram</div>
+                <div class="style-description">
+                    Bản đồ 3D với hiệu ứng holographic độc đáo, tạo cảm giác như
+                    đang xem bản đồ từ tương lai với công nghệ hologram.
+                </div>
+                <ul class="style-features">
+                    <li>Hiệu ứng hologram</li>
+                    <li>Màu sắc độc đáo</li>
+                    <li>Trải nghiệm ấn tượng</li>
+                </ul>
+                <a href="3d-holographic-map.html" class="style-link" data-file="3d-holographic-map.html">
+                    <span>Xem bản đồ →</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Bản đồ 3D Việt Nam - Chọn style để khám phá</p>
+        </div>
+    </div>
+
+    <script>
+        // Create animated particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Handle style card clicks
+        document.querySelectorAll('.style-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Don't navigate if clicking the link directly
+                if (e.target.closest('.style-link')) {
+                    return;
+                }
+
+                const link = this.querySelector('.style-link');
+                if (link) {
+                    showLoading();
+                    window.location.href = link.href;
+                }
+            });
+        });
+
+        // Handle link clicks with loading
+        document.querySelectorAll('.style-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                showLoading();
+
+                // Small delay for smooth transition
+                setTimeout(() => {
+                    window.location.href = this.href;
+                }, 300);
+            });
+        });
+
+        // Show loading overlay
+        function showLoading() {
+            document.getElementById('navLoading').classList.add('active');
+        }
+
+        // Initialize particles
+        createParticles();
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            const cards = document.querySelectorAll('.style-card');
+            const currentFocus = document.activeElement.closest('.style-card');
+
+            if (!currentFocus) {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    cards[0].focus();
+                }
+                return;
+            }
+
+            const currentIndex = Array.from(cards).indexOf(currentFocus);
+
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextIndex = (currentIndex + 1) % cards.length;
+                cards[nextIndex].focus();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevIndex = (currentIndex - 1 + cards.length) % cards.length;
+                cards[prevIndex].focus();
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const link = currentFocus.querySelector('.style-link');
+                if (link) {
+                    link.click();
+                }
+            }
+        });
+
+        // Make cards focusable
+        document.querySelectorAll('.style-card').forEach(card => {
+            card.setAttribute('tabindex', '0');
+        });
+    </script>
+</body>
+</html>
+
