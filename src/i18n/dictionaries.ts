@@ -92,7 +92,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     },
     title: {
       main: 'VIỆT NAM',
-      subtitle: 'Bao gồm Quần đảo Hoàng Sa & Trường Sa',
+      subtitle: 'Hoàng Sa, Trường Sa là của Việt Nam',
     },
     legend: {
       title: 'CHÚ GIẢI',
@@ -157,7 +157,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     },
     title: {
       main: 'VIETNAM',
-      subtitle: 'Including Paracel & Spratly Islands',
+      subtitle: 'Hoang Sa, Truong Sa are of Vietnam',
     },
     legend: {
       title: 'LEGEND',

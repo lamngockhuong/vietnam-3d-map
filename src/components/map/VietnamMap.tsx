@@ -22,6 +22,7 @@ import { Ocean } from './Ocean';
 import { ProvinceLabels } from './ProvinceLabels';
 import { Provinces } from './Provinces';
 import { SkyDome } from './SkyDome';
+import { WardLabels } from './WardLabels';
 import { Wards } from './Wards';
 
 interface TooltipData {
@@ -221,7 +222,10 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
           <group>
             <Ocean />
             {selectedProvince && wards.length > 0 ? (
-              <Wards wards={wards} onHover={handleWardHover} />
+              <>
+                <Wards wards={wards} onHover={handleWardHover} />
+                <WardLabels wards={wards} showLabels={showLabels} />
+              </>
             ) : (
               <>
                 <Provinces

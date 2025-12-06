@@ -8,22 +8,52 @@ import { VIETNAM_BOUNDS } from '@/data/provinces-data';
 import type { WardData } from '@/data/wards-data';
 import type { MapCenter } from '@/types';
 
-// Ward color categories
-type WardColorCategory = 'ward' | 'commune' | 'town';
-
-const WARD_COLORS: Record<WardColorCategory, number> = {
-  ward: 0x66bb6a, // Green for Phường
-  commune: 0x4caf50, // Darker green for Xã
-  town: 0xffc107, // Gold for Thị trấn
-};
-
 const HOVER_COLOR = 0xffffff;
 const OUTLINE_COLOR = 0xffffff;
 
-function getWardCategory(ward: WardData): WardColorCategory {
-  if (ward.type === 'Phường') return 'ward';
-  if (ward.type === 'Thị trấn') return 'town';
-  return 'commune';
+// Color palette for random ward colors (vibrant, distinct colors)
+const WARD_COLOR_PALETTE = [
+  0xe57373, // Red
+  0xf06292, // Pink
+  0xba68c8, // Purple
+  0x9575cd, // Deep Purple
+  0x7986cb, // Indigo
+  0x64b5f6, // Blue
+  0x4fc3f7, // Light Blue
+  0x4dd0e1, // Cyan
+  0x4db6ac, // Teal
+  0x81c784, // Green
+  0xaed581, // Light Green
+  0xdce775, // Lime
+  0xfff176, // Yellow
+  0xffd54f, // Amber
+  0xffb74d, // Orange
+  0xff8a65, // Deep Orange
+  0xa1887f, // Brown
+  0x90a4ae, // Blue Grey
+  0x7e57c2, // Violet
+  0x5c6bc0, // Indigo Alt
+  0x42a5f5, // Blue Alt
+  0x26c6da, // Cyan Alt
+  0x26a69a, // Teal Alt
+  0x66bb6a, // Green Alt
+  0x9ccc65, // Light Green Alt
+  0xd4e157, // Lime Alt
+  0xffee58, // Yellow Alt
+  0xffca28, // Amber Alt
+  0xffa726, // Orange Alt
+  0xff7043, // Deep Orange Alt
+];
+
+// Generate consistent random color based on ward id
+function getWardColor(wardId: string): number {
+  // Simple hash function to get consistent color for same ward
+  let hash = 0;
+  for (let i = 0; i < wardId.length; i++) {
+    hash = wardId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % WARD_COLOR_PALETTE.length;
+  return WARD_COLOR_PALETTE[index];
 }
 
 const center: MapCenter = {
@@ -43,7 +73,7 @@ interface WardGeometry {
   geometry: THREE.BufferGeometry;
   outlineGeometry: THREE.BufferGeometry | null;
   ward: WardData;
-  category: WardColorCategory;
+  color: number;
 }
 
 interface WardsProps {
@@ -74,7 +104,7 @@ export function Wards({ wards, onHover }: WardsProps) {
     const geos: WardGeometry[] = [];
 
     wards.forEach((ward) => {
-      const category = getWardCategory(ward);
+      const color = getWardColor(ward.id);
       const geometries: THREE.BufferGeometry[] = [];
       const outlineSegments: number[] = [];
 
@@ -128,7 +158,7 @@ export function Wards({ wards, onHover }: WardsProps) {
             geometry: merged,
             outlineGeometry: outlineGeo,
             ward,
-            category,
+            color,
           });
         }
 
@@ -204,7 +234,7 @@ export function Wards({ wards, onHover }: WardsProps) {
     <group ref={groupRef} name="province-wards">
       {wardGeometries.map((item, index) => {
         const isHovered = hoveredWard === item.ward.id;
-        const color = isHovered ? HOVER_COLOR : WARD_COLORS[item.category];
+        const displayColor = isHovered ? HOVER_COLOR : item.color;
 
         return (
           <group key={index}>
@@ -215,7 +245,7 @@ export function Wards({ wards, onHover }: WardsProps) {
               receiveShadow
             >
               <meshStandardMaterial
-                color={color}
+                color={displayColor}
                 emissive={isHovered ? 0x222222 : 0x000000}
                 roughness={0.7}
                 metalness={0.1}
