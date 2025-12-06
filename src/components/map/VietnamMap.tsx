@@ -14,6 +14,7 @@ import {
 } from 'react';
 import type { WebGLRenderer } from 'three';
 import type { ProvinceData } from '@/data/provinces-data';
+import { loadWardsForProvince, type WardData } from '@/data/wards-data';
 import type { HandGestureState } from '@/hooks/useHandTracking';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { CameraController, type CameraControllerRef } from './CameraController';
@@ -21,6 +22,7 @@ import { Ocean } from './Ocean';
 import { ProvinceLabels } from './ProvinceLabels';
 import { Provinces } from './Provinces';
 import { SkyDome } from './SkyDome';
+import { Wards } from './Wards';
 
 interface TooltipData {
   name: string;
@@ -96,6 +98,9 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [contextLost, setContextLost] = useState(false);
+  const [selectedProvince, setSelectedProvince] = useState<ProvinceData | null>(null);
+  const [wards, setWards] = useState<WardData[]>([]);
+  const [loadingWards, setLoadingWards] = useState(false);
   const rendererRef = useRef<WebGLRenderer | null>(null);
   const cameraControllerRef = useRef<CameraControllerRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -133,6 +138,37 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
     },
     [dict],
   );
+
+  const handleProvinceClick = useCallback(async (province: ProvinceData) => {
+    setSelectedProvince(province);
+    setLoadingWards(true);
+    setWards([]);
+
+    const data = await loadWardsForProvince(province.id);
+    if (data) {
+      setWards(data.wards);
+    }
+    setLoadingWards(false);
+  }, []);
+
+  const handleWardHover = useCallback(
+    (ward: WardData | null) => {
+      if (ward) {
+        setTooltip({
+          name: ward.name,
+          info: `${ward.type} | ${dict.provinces.population}: ${formatPopulation(ward.population)} | ${dict.provinces.area}: ${ward.area.toLocaleString('vi-VN')} km²`,
+        });
+      } else {
+        setTooltip(null);
+      }
+    },
+    [dict],
+  );
+
+  const handleBackToProvinces = useCallback(() => {
+    setSelectedProvince(null);
+    setWards([]);
+  }, []);
 
   const handleCreated = useCallback(({ gl }: { gl: WebGLRenderer }) => {
     rendererRef.current = gl;
@@ -184,8 +220,18 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
         <Suspense fallback={null}>
           <group>
             <Ocean />
-            <Provinces provinces={provinces} onHover={handleProvinceHover} />
-            <ProvinceLabels provinces={provinces} showLabels={showLabels} />
+            {selectedProvince && wards.length > 0 ? (
+              <Wards wards={wards} onHover={handleWardHover} />
+            ) : (
+              <>
+                <Provinces
+                  provinces={provinces}
+                  onHover={handleProvinceHover}
+                  onClick={handleProvinceClick}
+                />
+                <ProvinceLabels provinces={provinces} showLabels={showLabels} />
+              </>
+            )}
           </group>
         </Suspense>
 
@@ -199,6 +245,58 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
           <BrightnessContrast brightness={0} contrast={0.05} />
         </EffectComposer>
       </Canvas>
+
+      {/* Back button when viewing wards */}
+      {selectedProvince && (
+        <button
+          onClick={handleBackToProvinces}
+          className="absolute top-4 left-4 z-50 px-4 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white hover:bg-black/90 transition-colors flex items-center gap-2"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          <span className="text-sm font-medium">{selectedProvince.name}</span>
+        </button>
+      )}
+
+      {/* Loading indicator */}
+      {loadingWards && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 px-4 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white">
+          <div className="flex items-center gap-2">
+            <svg
+              className="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <span className="text-sm">{dict.camera.loading}</span>
+          </div>
+        </div>
+      )}
 
       {/* Tooltip */}
       {tooltip && (

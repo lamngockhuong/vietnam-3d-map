@@ -97,9 +97,10 @@ interface ProvinceGeometry {
 interface ProvincesProps {
   provinces: ProvinceData[];
   onHover?: (province: ProvinceData | null) => void;
+  onClick?: (province: ProvinceData) => void;
 }
 
-export function Provinces({ provinces, onHover }: ProvincesProps) {
+export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
   const { camera, gl } = useThree();
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
@@ -107,11 +108,16 @@ export function Provinces({ provinces, onHover }: ProvincesProps) {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
   const hoveredProvinceRef = useRef<string | null>(null);
   const onHoverRef = useRef(onHover);
+  const onClickRef = useRef(onClick);
 
-  // Keep onHover ref up to date
+  // Keep refs up to date
   useEffect(() => {
     onHoverRef.current = onHover;
   }, [onHover]);
+
+  useEffect(() => {
+    onClickRef.current = onClick;
+  }, [onClick]);
 
   // Create individual province geometries for raycasting
   const provinceGeometries = useMemo(() => {
@@ -240,14 +246,42 @@ export function Provinces({ provinces, onHover }: ProvincesProps) {
     [camera, gl.domElement, provinces],
   );
 
+  // Handle click for province selection
+  const handleClick = useCallback(
+    (event: MouseEvent) => {
+      if (!groupRef.current || !onClickRef.current) return;
+
+      const rect = gl.domElement.getBoundingClientRect();
+      mouse.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.current.setFromCamera(mouse.current, camera);
+      const intersects = raycaster.current
+        .intersectObjects(groupRef.current.children, true)
+        .filter((hit) => hit.object.type === 'Mesh');
+
+      if (intersects.length > 0) {
+        const mesh = intersects[0].object as THREE.Mesh;
+        const provinceName = mesh.userData.provinceName as string;
+        const province = provinces.find((p) => p.name === provinceName);
+        if (province) {
+          onClickRef.current(province);
+        }
+      }
+    },
+    [camera, gl.domElement, provinces],
+  );
+
   // Set up pointer event listener
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('click', handleClick);
     return () => {
       canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('click', handleClick);
     };
-  }, [gl.domElement, handlePointerMove]);
+  }, [gl.domElement, handlePointerMove, handleClick]);
 
   if (provinceGeometries.length === 0) {
     return null;
