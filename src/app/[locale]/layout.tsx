@@ -21,6 +21,9 @@ export async function generateMetadata({
   return {
     title: dict.meta.title,
     description: dict.meta.description,
+    icons: {
+      icon: '/icon.svg',
+    },
   };
 }
 

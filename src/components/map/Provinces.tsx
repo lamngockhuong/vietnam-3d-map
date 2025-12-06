@@ -1,6 +1,6 @@
 'use client';
 
-import { useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -20,6 +20,8 @@ const PROVINCE_COLORS: Record<ColorCategory, number> = {
 
 const HOVER_COLOR = 0xffffff; // White highlight on hover
 const OUTLINE_COLOR = 0xffffff; // White outline for coastlines
+const SELECTED_OUTLINE_COLOR = 0x00ff00; // Bright green for selected outline
+const SELECTED_GLOW_COLOR = 0x00ffff; // Cyan glow
 
 const HIGHLAND_PROVINCES = new Set([
   'Lai Châu',
@@ -96,11 +98,19 @@ interface ProvinceGeometry {
 
 interface ProvincesProps {
   provinces: ProvinceData[];
+  selectedProvinceId?: string | null;
   onHover?: (province: ProvinceData | null) => void;
   onClick?: (province: ProvinceData) => void;
+  onDoubleClick?: (province: ProvinceData) => void;
 }
 
-export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
+export function Provinces({
+  provinces,
+  selectedProvinceId,
+  onHover,
+  onClick,
+  onDoubleClick,
+}: ProvincesProps) {
   const { camera, gl } = useThree();
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
@@ -109,6 +119,7 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
   const hoveredProvinceRef = useRef<string | null>(null);
   const onHoverRef = useRef(onHover);
   const onClickRef = useRef(onClick);
+  const onDoubleClickRef = useRef(onDoubleClick);
 
   // Keep refs up to date
   useEffect(() => {
@@ -118,6 +129,10 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
   useEffect(() => {
     onClickRef.current = onClick;
   }, [onClick]);
+
+  useEffect(() => {
+    onDoubleClickRef.current = onDoubleClick;
+  }, [onDoubleClick]);
 
   // Create individual province geometries for raycasting
   const provinceGeometries = useMemo(() => {
@@ -208,6 +223,39 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
     });
   }, []);
 
+  // Selected outline material - flickering effect (inner)
+  const selectedOutlineMaterial = useMemo(() => {
+    return new THREE.LineBasicMaterial({
+      color: SELECTED_OUTLINE_COLOR,
+      linewidth: 2,
+      transparent: true,
+      opacity: 1,
+    });
+  }, []);
+
+  // Glow outline material (outer glow effect)
+  const glowOutlineMaterial = useMemo(() => {
+    return new THREE.LineBasicMaterial({
+      color: SELECTED_GLOW_COLOR,
+      linewidth: 3,
+      transparent: true,
+      opacity: 0.6,
+    });
+  }, []);
+
+  // Animate flickering outline for selected province
+  useFrame(({ clock }) => {
+    if (selectedProvinceId) {
+      // Fast pulsing for main outline (0.5 to 1.0)
+      const pulse = Math.sin(clock.elapsedTime * 8) * 0.25 + 0.75;
+      selectedOutlineMaterial.opacity = pulse;
+
+      // Slower pulsing for glow (0.3 to 0.8)
+      const glowPulse = Math.sin(clock.elapsedTime * 4) * 0.25 + 0.55;
+      glowOutlineMaterial.opacity = glowPulse;
+    }
+  });
+
   // Handle mouse move for raycasting - use refs to avoid stale closures
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
@@ -246,7 +294,7 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
     [camera, gl.domElement, provinces],
   );
 
-  // Handle click for province selection
+  // Handle click for province highlight (single click)
   const handleClick = useCallback(
     (event: MouseEvent) => {
       if (!groupRef.current || !onClickRef.current) return;
@@ -272,16 +320,44 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
     [camera, gl.domElement, provinces],
   );
 
+  // Handle double click for ward mode
+  const handleDoubleClick = useCallback(
+    (event: MouseEvent) => {
+      if (!groupRef.current || !onDoubleClickRef.current) return;
+
+      const rect = gl.domElement.getBoundingClientRect();
+      mouse.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.current.setFromCamera(mouse.current, camera);
+      const intersects = raycaster.current
+        .intersectObjects(groupRef.current.children, true)
+        .filter((hit) => hit.object.type === 'Mesh');
+
+      if (intersects.length > 0) {
+        const mesh = intersects[0].object as THREE.Mesh;
+        const provinceName = mesh.userData.provinceName as string;
+        const province = provinces.find((p) => p.name === provinceName);
+        if (province) {
+          onDoubleClickRef.current(province);
+        }
+      }
+    },
+    [camera, gl.domElement, provinces],
+  );
+
   // Set up pointer event listener
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.addEventListener('pointermove', handlePointerMove);
     canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('dblclick', handleDoubleClick);
     return () => {
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('click', handleClick);
+      canvas.removeEventListener('dblclick', handleDoubleClick);
     };
-  }, [gl.domElement, handlePointerMove, handleClick]);
+  }, [gl.domElement, handlePointerMove, handleClick, handleDoubleClick]);
 
   if (provinceGeometries.length === 0) {
     return null;
@@ -291,7 +367,9 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
     <group ref={groupRef} name="vietnam-provinces">
       {provinceGeometries.map((item, index) => {
         const isHovered = hoveredProvince === item.province.name;
-        const color = isHovered ? HOVER_COLOR : PROVINCE_COLORS[item.category];
+        const isSelected = selectedProvinceId === item.province.id;
+        const color =
+          isHovered || isSelected ? HOVER_COLOR : PROVINCE_COLORS[item.category];
 
         return (
           <group key={index}>
@@ -304,7 +382,8 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
             >
               <meshStandardMaterial
                 color={color}
-                emissive={isHovered ? 0x222222 : 0x000000}
+                emissive={isSelected ? 0x004444 : isHovered ? 0x222222 : 0x000000}
+                emissiveIntensity={isSelected ? 1.5 : 1}
                 roughness={0.7}
                 metalness={0.1}
               />
@@ -312,6 +391,23 @@ export function Provinces({ provinces, onHover, onClick }: ProvincesProps) {
             {/* Coastline outline */}
             {item.outlineGeometry && (
               <lineSegments geometry={item.outlineGeometry} material={outlineMaterial} />
+            )}
+            {/* Flickering outline for selected province */}
+            {isSelected && item.outlineGeometry && (
+              <>
+                {/* Outer glow layer */}
+                <lineSegments
+                  geometry={item.outlineGeometry}
+                  material={glowOutlineMaterial}
+                  position={[0, 0.003, 0]}
+                />
+                {/* Inner bright outline */}
+                <lineSegments
+                  geometry={item.outlineGeometry}
+                  material={selectedOutlineMaterial}
+                  position={[0, 0.005, 0]}
+                />
+              </>
             )}
           </group>
         );

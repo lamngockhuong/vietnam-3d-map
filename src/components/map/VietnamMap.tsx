@@ -32,6 +32,7 @@ interface TooltipData {
 
 export interface VietnamMapRef {
   resetCamera: () => void;
+  zoomToLocation: (center: [number, number], distance?: number) => void;
 }
 
 interface VietnamMapProps {
@@ -39,6 +40,16 @@ interface VietnamMapProps {
   gestureState?: HandGestureState | null;
   provinces: ProvinceData[];
   showLabels?: boolean;
+  // Controlled selection props
+  highlightedProvince?: ProvinceData | null;
+  selectedProvince?: ProvinceData | null;
+  selectedWard?: WardData | null;
+  wards?: WardData[];
+  loadingWards?: boolean;
+  onProvinceClick?: (province: ProvinceData) => void;
+  onProvinceDoubleClick?: (province: ProvinceData) => void;
+  onWardClick?: (ward: WardData) => void;
+  onBackToProvinces?: () => void;
   onWardModeChange?: (isWardMode: boolean) => void;
 }
 
@@ -94,15 +105,42 @@ function formatPopulation(pop: number): string {
 }
 
 export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function VietnamMap(
-  { dict, gestureState, provinces, showLabels = true, onWardModeChange },
+  {
+    dict,
+    gestureState,
+    provinces,
+    showLabels = true,
+    highlightedProvince,
+    selectedProvince: controlledSelectedProvince,
+    selectedWard,
+    wards: controlledWards = [],
+    loadingWards: controlledLoadingWards = false,
+    onProvinceClick,
+    onProvinceDoubleClick,
+    onWardClick,
+    onBackToProvinces,
+    onWardModeChange,
+  },
   ref,
 ) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [contextLost, setContextLost] = useState(false);
-  const [selectedProvince, setSelectedProvince] = useState<ProvinceData | null>(null);
-  const [wards, setWards] = useState<WardData[]>([]);
-  const [loadingWards, setLoadingWards] = useState(false);
+
+  // Support both controlled and uncontrolled modes
+  const [internalSelectedProvince, setInternalSelectedProvince] =
+    useState<ProvinceData | null>(null);
+  const [internalWards, setInternalWards] = useState<WardData[]>([]);
+  const [internalLoadingWards, setInternalLoadingWards] = useState(false);
+
+  // Use controlled props if provided, otherwise use internal state
+  const isControlled = controlledSelectedProvince !== undefined;
+  const selectedProvince = isControlled
+    ? controlledSelectedProvince
+    : internalSelectedProvince;
+  const wards = isControlled ? controlledWards : internalWards;
+  const loadingWards = isControlled ? controlledLoadingWards : internalLoadingWards;
+
   const rendererRef = useRef<WebGLRenderer | null>(null);
   const cameraControllerRef = useRef<CameraControllerRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -121,12 +159,15 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
     onWardModeChange?.(selectedProvince !== null);
   }, [selectedProvince, onWardModeChange]);
 
-  // Expose reset camera function
+  // Expose camera control functions
   useImperativeHandle(
     ref,
     () => ({
       resetCamera: () => {
         cameraControllerRef.current?.resetCamera();
+      },
+      zoomToLocation: (center: [number, number], distance?: number) => {
+        cameraControllerRef.current?.zoomToLocation(center, distance);
       },
     }),
     [],
@@ -146,17 +187,39 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
     [dict],
   );
 
-  const handleProvinceClick = useCallback(async (province: ProvinceData) => {
-    setSelectedProvince(province);
-    setLoadingWards(true);
-    setWards([]);
+  // Single click - highlight province only
+  const handleProvinceClick = useCallback(
+    (province: ProvinceData) => {
+      if (isControlled && onProvinceClick) {
+        // Controlled mode - let parent handle state
+        onProvinceClick(province);
+      }
+      // In uncontrolled mode, single click does nothing (double click triggers ward mode)
+    },
+    [isControlled, onProvinceClick],
+  );
 
-    const data = await loadWardsForProvince(province.id);
-    if (data) {
-      setWards(data.wards);
-    }
-    setLoadingWards(false);
-  }, []);
+  // Double click - trigger ward mode
+  const handleProvinceDoubleClick = useCallback(
+    async (province: ProvinceData) => {
+      if (isControlled && onProvinceDoubleClick) {
+        // Controlled mode - let parent handle state
+        onProvinceDoubleClick(province);
+      } else {
+        // Uncontrolled mode - manage state internally
+        setInternalSelectedProvince(province);
+        setInternalLoadingWards(true);
+        setInternalWards([]);
+
+        const data = await loadWardsForProvince(province.id);
+        if (data) {
+          setInternalWards(data.wards);
+        }
+        setInternalLoadingWards(false);
+      }
+    },
+    [isControlled, onProvinceDoubleClick],
+  );
 
   const handleWardHover = useCallback(
     (ward: WardData | null) => {
@@ -172,10 +235,25 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
     [dict],
   );
 
+  const handleWardClick = useCallback(
+    (ward: WardData) => {
+      if (onWardClick) {
+        onWardClick(ward);
+      }
+    },
+    [onWardClick],
+  );
+
   const handleBackToProvinces = useCallback(() => {
-    setSelectedProvince(null);
-    setWards([]);
-  }, []);
+    if (isControlled && onBackToProvinces) {
+      // Controlled mode
+      onBackToProvinces();
+    } else {
+      // Uncontrolled mode
+      setInternalSelectedProvince(null);
+      setInternalWards([]);
+    }
+  }, [isControlled, onBackToProvinces]);
 
   const handleCreated = useCallback(({ gl }: { gl: WebGLRenderer }) => {
     rendererRef.current = gl;
@@ -229,15 +307,17 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
             <Ocean />
             {selectedProvince && wards.length > 0 ? (
               <>
-                <Wards wards={wards} onHover={handleWardHover} />
+                <Wards wards={wards} selectedWardId={selectedWard?.id} onHover={handleWardHover} onClick={handleWardClick} />
                 <WardLabels wards={wards} showLabels={showLabels} />
               </>
             ) : (
               <>
                 <Provinces
                   provinces={provinces}
+                  selectedProvinceId={highlightedProvince?.id}
                   onHover={handleProvinceHover}
                   onClick={handleProvinceClick}
+                  onDoubleClick={handleProvinceDoubleClick}
                 />
                 <ProvinceLabels provinces={provinces} showLabels={showLabels} />
               </>
@@ -256,11 +336,11 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
         </EffectComposer>
       </Canvas>
 
-      {/* Back button when viewing wards */}
+      {/* Back button when viewing wards - positioned below camera toggle */}
       {selectedProvince && (
         <button
           onClick={handleBackToProvinces}
-          className="absolute top-4 left-4 z-50 px-4 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white hover:bg-black/90 transition-colors flex items-center gap-2"
+          className="absolute top-20 sm:top-20 left-3 sm:left-8 z-50 px-4 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white hover:bg-black/90 transition-colors flex items-center gap-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -275,7 +355,7 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
           >
             <path d="m15 18-6-6 6-6" />
           </svg>
-          <span className="text-sm font-medium">{selectedProvince.name}</span>
+          <span className="text-sm font-medium" style={{ marginRight: '4px' }}>{selectedProvince.name}</span>
         </button>
       )}
 
