@@ -24,12 +24,21 @@ pnpm preprocess:wards # Regenerate ward data from GeoJSON
 
 The 3D map uses client-side only rendering due to Three.js WebGL requirements:
 
-1. **MapWrapper** (`src/components/MapWrapper.tsx`) - Client Component that dynamically imports VietnamMap with `ssr: false`
+1. **MapWrapper** (`src/components/MapWrapper.tsx`) - Client Component that dynamically imports VietnamMap with `ssr: false`, manages lifted state for province/ward selection
 2. **VietnamMap** (`src/components/map/VietnamMap.tsx`) - React Three Fiber Canvas with scene setup, lighting, and post-processing
-3. **Provinces** (`src/components/map/Provinces.tsx`) - Renders 63 provinces using Three.js ExtrudeGeometry with raycasting for hover/click detection
-4. **Wards** (`src/components/map/Wards.tsx`) - Renders ward-level boundaries when a province is clicked (lazy-loaded)
+3. **Provinces** (`src/components/map/Provinces.tsx`) - Renders 63 provinces using Three.js ExtrudeGeometry with raycasting for hover/click/double-click detection, flickering outline effect for selected province
+4. **Wards** (`src/components/map/Wards.tsx`) - Renders ward-level boundaries when a province is double-clicked (lazy-loaded), flickering outline effect for selected ward
 5. **Ocean** (`src/components/map/Ocean.tsx`) - Custom GLSL shader for animated water with depth gradient, caustics, and specular highlights
-6. **CameraController** (`src/components/map/CameraController.tsx`) - OrbitControls with custom zoom-to-cursor, trackpad gestures, and hand gesture integration
+6. **CameraController** (`src/components/map/CameraController.tsx`) - OrbitControls with custom zoom-to-cursor, trackpad gestures, hand gesture integration, and `zoomToLocation` method for programmatic camera movement
+
+### Sidebar System
+
+- **Sidebar** (`src/components/ui/Sidebar.tsx`) - Collapsible sidebar panel on right side with province/ward lists
+- **ProvinceList** (`src/components/ui/sidebar/ProvinceList.tsx`) - Virtualized list of provinces with click-to-highlight and double-click-to-show-wards behavior
+- **WardList** (`src/components/ui/sidebar/WardList.tsx`) - Virtualized list of wards with click-to-select and zoom-to-ward behavior
+- **SearchInput** (`src/components/ui/sidebar/SearchInput.tsx`) - Diacritic-insensitive search for Vietnamese names
+- **InfoPanel** (`src/components/ui/sidebar/InfoPanel.tsx`) - Displays province/ward information (type, area, population, density)
+- Uses `@tanstack/react-virtual` for virtualized list performance
 
 ### i18n System
 
