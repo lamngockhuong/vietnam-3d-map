@@ -6,7 +6,9 @@ import type { VietnamMapRef } from '@/components/map/VietnamMap';
 import { Controls } from '@/components/ui/Controls';
 import { HandTrackingVideo } from '@/components/ui/HandTrackingVideo';
 import { Legend } from '@/components/ui/Legend';
+import { Sidebar } from '@/components/ui/Sidebar';
 import { loadProvinces, type ProvinceData } from '@/data/provinces-data';
+import { loadWardsForProvince, type WardData } from '@/data/wards-data';
 import type { HandGestureState } from '@/hooks/useHandTracking';
 import type { Dictionary } from '@/i18n/dictionaries';
 
@@ -37,7 +39,15 @@ export function MapWrapper({ dict }: MapWrapperProps) {
   const [gestureState, setGestureState] = useState<HandGestureState | null>(null);
   const [provinces, setProvinces] = useState<ProvinceData[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isWardMode, setIsWardMode] = useState(false);
+
+  // Lifted state for controlled selection
+  const [highlightedProvince, setHighlightedProvince] = useState<ProvinceData | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<ProvinceData | null>(null);
+  const [selectedWard, setSelectedWard] = useState<WardData | null>(null);
+  const [wards, setWards] = useState<WardData[]>([]);
+  const [loadingWards, setLoadingWards] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const mapRef = useRef<VietnamMapRef>(null);
 
   // Preload provinces data at wrapper level
@@ -68,9 +78,58 @@ export function MapWrapper({ dict }: MapWrapperProps) {
     mapRef.current?.resetCamera();
   }, []);
 
-  const handleWardModeChange = useCallback((wardMode: boolean) => {
-    setIsWardMode(wardMode);
+  // Province highlight handler (single click - just highlight and zoom)
+  const handleProvinceHighlight = useCallback((province: ProvinceData) => {
+    setHighlightedProvince(province);
+    // Zoom to province center
+    mapRef.current?.zoomToLocation(province.center, 1.5);
   }, []);
+
+  // Province selection handler (double click - show ward page)
+  const handleProvinceSelect = useCallback(async (province: ProvinceData) => {
+    setHighlightedProvince(province);
+    setSelectedProvince(province);
+    setSelectedWard(null);
+    setLoadingWards(true);
+    setWards([]);
+    setSearchQuery('');
+
+    // Zoom to province center
+    mapRef.current?.zoomToLocation(province.center, 1.5);
+
+    // Load wards
+    const data = await loadWardsForProvince(province.id);
+    if (data) {
+      setWards(data.wards);
+    }
+    setLoadingWards(false);
+  }, []);
+
+  // Ward selection handler
+  const handleWardSelect = useCallback((ward: WardData) => {
+    setSelectedWard(ward);
+    // Zoom to ward center with closer distance
+    mapRef.current?.zoomToLocation(ward.center, 0.5);
+  }, []);
+
+  // Back to provinces handler
+  const handleBackToProvinces = useCallback(() => {
+    setHighlightedProvince(null);
+    setSelectedProvince(null);
+    setSelectedWard(null);
+    setWards([]);
+    setSearchQuery('');
+    // Reset camera to default view
+    mapRef.current?.resetCamera();
+  }, []);
+
+  // Search query change handler
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  // Ward mode for hiding legend
+  const isWardMode = selectedProvince !== null;
 
   // Show loading until provinces are ready
   if (isLoading || !provinces) {
@@ -94,7 +153,15 @@ export function MapWrapper({ dict }: MapWrapperProps) {
         dict={dict}
         gestureState={gestureState}
         provinces={provinces}
-        onWardModeChange={handleWardModeChange}
+        highlightedProvince={highlightedProvince}
+        selectedProvince={selectedProvince}
+        selectedWard={selectedWard}
+        wards={wards}
+        loadingWards={loadingWards}
+        onProvinceClick={handleProvinceHighlight}
+        onProvinceDoubleClick={handleProvinceSelect}
+        onWardClick={handleWardSelect}
+        onBackToProvinces={handleBackToProvinces}
       />
 
       {/* Hand Tracking Video */}
@@ -104,9 +171,28 @@ export function MapWrapper({ dict }: MapWrapperProps) {
         onGestureChange={handleGestureChange}
       />
 
+      {/* Sidebar Panel */}
+      <div className="fixed top-20 sm:top-28 right-3 sm:right-8 z-10">
+        <Sidebar
+          dict={dict}
+          provinces={provinces}
+          highlightedProvince={highlightedProvince}
+          selectedProvince={selectedProvince}
+          selectedWard={selectedWard}
+          wards={wards}
+          loadingWards={loadingWards}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onProvinceSelect={handleProvinceHighlight}
+          onProvinceDoubleClick={handleProvinceSelect}
+          onWardSelect={handleWardSelect}
+          onBackToProvinces={handleBackToProvinces}
+        />
+      </div>
+
       {/* Legend Panel - hidden in ward mode */}
       {!isWardMode && (
-        <div className="fixed top-20 sm:top-28 left-3 sm:left-8 z-10">
+        <div className="fixed top-20 sm:top-28 left-3 sm:left-8 z-10 hidden sm:block">
           <Legend dict={dict} />
         </div>
       )}
@@ -116,10 +202,10 @@ export function MapWrapper({ dict }: MapWrapperProps) {
         <Controls dict={dict} onResetCamera={handleResetCamera} />
       </div>
 
-      {/* Toggle Hand Tracking Button - hidden on mobile, positioned next to language switcher */}
+      {/* Toggle Hand Tracking Button - hidden on mobile, positioned on left side */}
       <button
         onClick={toggleHandTracking}
-        className={`hidden sm:flex fixed top-4 sm:top-8 right-[90px] sm:right-[110px] z-10 w-11 h-11 rounded-xl shadow-lg border transition-all items-center justify-center ${
+        className={`hidden sm:flex fixed top-4 sm:top-8 left-3 sm:left-8 z-10 w-11 h-11 rounded-xl shadow-lg border transition-all items-center justify-center ${
           handTrackingEnabled
             ? 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700'
             : 'bg-white/90 backdrop-blur-md text-gray-600 border-gray-100 hover:bg-white hover:shadow-xl'

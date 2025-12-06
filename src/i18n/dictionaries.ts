@@ -72,6 +72,17 @@ export interface Dictionary {
     truongSa: string;
     sovereignty: string;
   };
+  // Sidebar
+  sidebar: {
+    title: string;
+    searchPlaceholder: string;
+    provinces: string;
+    wards: string;
+    noResults: string;
+    backToProvinces: string;
+    selectProvince: string;
+    loading: string;
+  };
 }
 
 const dictionaries: Record<Locale, Dictionary> = {
@@ -139,6 +150,16 @@ const dictionaries: Record<Locale, Dictionary> = {
       truongSa: 'Quần đảo Trường Sa',
       sovereignty: 'Chủ quyền Việt Nam',
     },
+    sidebar: {
+      title: 'DANH SÁCH',
+      searchPlaceholder: 'Tìm kiếm tỉnh thành, quận huyện...',
+      provinces: 'Tỉnh thành',
+      wards: 'Quận/Huyện/Xã',
+      noResults: 'Không tìm thấy kết quả',
+      backToProvinces: 'Quay lại danh sách tỉnh',
+      selectProvince: 'Chọn một tỉnh để xem chi tiết',
+      loading: 'Đang tải...',
+    },
   },
   en: {
     meta: {
@@ -203,6 +224,16 @@ const dictionaries: Record<Locale, Dictionary> = {
       hoangSa: 'Paracel Islands',
       truongSa: 'Spratly Islands',
       sovereignty: 'Vietnamese Sovereignty',
+    },
+    sidebar: {
+      title: 'DIRECTORY',
+      searchPlaceholder: 'Search provinces, districts...',
+      provinces: 'Provinces',
+      wards: 'Districts/Wards',
+      noResults: 'No results found',
+      backToProvinces: 'Back to provinces',
+      selectProvince: 'Select a province to view details',
+      loading: 'Loading...',
     },
   },
 };

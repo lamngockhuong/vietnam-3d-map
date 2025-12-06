@@ -6,6 +6,22 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { HandGestureState } from '@/hooks/useHandTracking';
+import { VIETNAM_BOUNDS } from '@/data/provinces-data';
+
+// Geo conversion constants (must match other components)
+const geoCenter = {
+  lat: VIETNAM_BOUNDS.centerLat,
+  lon: VIETNAM_BOUNDS.centerLon,
+};
+const geoScale = 0.35;
+
+// Convert geo coordinates to 3D position
+function geoTo3D(lon: number, lat: number) {
+  return {
+    x: (lon - geoCenter.lon) * geoScale,
+    z: -(lat - geoCenter.lat) * geoScale,
+  };
+}
 
 // Default camera position
 const DEFAULT_CAMERA = {
@@ -18,6 +34,7 @@ const DEFAULT_CAMERA = {
 
 export interface CameraControllerRef {
   resetCamera: () => void;
+  zoomToLocation: (center: [number, number], distance?: number) => void;
 }
 
 interface CameraControllerProps {
@@ -39,7 +56,7 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
     // For zoom-to-cursor
     const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
 
-    // Expose reset function via ref
+    // Expose reset and zoomToLocation functions via ref
     useImperativeHandle(
       ref,
       () => ({
@@ -55,6 +72,35 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
             controlsRef.current.target.set(...DEFAULT_CAMERA.target);
             controlsRef.current.update();
           }
+        },
+        zoomToLocation: (center: [number, number], distance = 1.5) => {
+          if (!controlsRef.current) return;
+
+          const controls = controlsRef.current;
+          const { x, z } = geoTo3D(center[0], center[1]);
+
+          // Set new target
+          controls.target.set(x, 0, z);
+
+          // Calculate new camera position maintaining current angle but closer
+          const currentPolar = controls.getPolarAngle();
+          const currentAzimuth = controls.getAzimuthalAngle();
+
+          const camX = x + distance * Math.sin(currentPolar) * Math.sin(currentAzimuth);
+          const camY = distance * Math.cos(currentPolar);
+          const camZ = z + distance * Math.sin(currentPolar) * Math.cos(currentAzimuth);
+
+          camera.position.set(camX, camY, camZ);
+          camera.lookAt(x, 0, z);
+
+          // Update target ref for gesture system
+          targetRef.current = {
+            azimuthalAngle: currentAzimuth,
+            polarAngle: currentPolar,
+            distance: distance,
+          };
+
+          controls.update();
         },
       }),
       [camera],

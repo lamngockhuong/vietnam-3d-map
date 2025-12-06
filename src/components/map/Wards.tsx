@@ -1,6 +1,6 @@
 'use client';
 
-import { useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -10,6 +10,8 @@ import type { MapCenter } from '@/types';
 
 const HOVER_COLOR = 0xffffff;
 const OUTLINE_COLOR = 0xffffff;
+const SELECTED_OUTLINE_COLOR = 0x00ff00; // Bright green for selected outline
+const SELECTED_GLOW_COLOR = 0x00ffff; // Cyan glow
 
 // Color palette for random ward colors (vibrant, distinct colors)
 const WARD_COLOR_PALETTE = [
@@ -78,10 +80,12 @@ interface WardGeometry {
 
 interface WardsProps {
   wards: WardData[];
+  selectedWardId?: string | null;
   onHover?: (ward: WardData | null) => void;
+  onClick?: (ward: WardData) => void;
 }
 
-export function Wards({ wards, onHover }: WardsProps) {
+export function Wards({ wards, selectedWardId, onHover, onClick }: WardsProps) {
   const { camera, gl } = useThree();
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
@@ -89,10 +93,15 @@ export function Wards({ wards, onHover }: WardsProps) {
   const [hoveredWard, setHoveredWard] = useState<string | null>(null);
   const hoveredWardRef = useRef<string | null>(null);
   const onHoverRef = useRef(onHover);
+  const onClickRef = useRef(onClick);
 
   useEffect(() => {
     onHoverRef.current = onHover;
   }, [onHover]);
+
+  useEffect(() => {
+    onClickRef.current = onClick;
+  }, [onClick]);
 
   // Ward elevation (slightly raised from ocean)
   const elevation = 0.025;
@@ -181,6 +190,39 @@ export function Wards({ wards, onHover }: WardsProps) {
     });
   }, []);
 
+  // Selected outline material - flickering effect (inner)
+  const selectedOutlineMaterial = useMemo(() => {
+    return new THREE.LineBasicMaterial({
+      color: SELECTED_OUTLINE_COLOR,
+      linewidth: 2,
+      transparent: true,
+      opacity: 1,
+    });
+  }, []);
+
+  // Glow outline material (outer glow effect)
+  const glowOutlineMaterial = useMemo(() => {
+    return new THREE.LineBasicMaterial({
+      color: SELECTED_GLOW_COLOR,
+      linewidth: 3,
+      transparent: true,
+      opacity: 0.6,
+    });
+  }, []);
+
+  // Animate flickering outline for selected ward
+  useFrame(({ clock }) => {
+    if (selectedWardId) {
+      // Fast pulsing for main outline (0.5 to 1.0)
+      const pulse = Math.sin(clock.elapsedTime * 8) * 0.25 + 0.75;
+      selectedOutlineMaterial.opacity = pulse;
+
+      // Slower pulsing for glow (0.3 to 0.8)
+      const glowPulse = Math.sin(clock.elapsedTime * 4) * 0.25 + 0.55;
+      glowOutlineMaterial.opacity = glowPulse;
+    }
+  });
+
   // Handle pointer move for raycasting
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
@@ -218,13 +260,41 @@ export function Wards({ wards, onHover }: WardsProps) {
     [camera, gl.domElement, wards],
   );
 
+  // Handle click for ward selection
+  const handleClick = useCallback(
+    (event: MouseEvent) => {
+      if (!groupRef.current) return;
+
+      const rect = gl.domElement.getBoundingClientRect();
+      mouse.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.current.setFromCamera(mouse.current, camera);
+      const intersects = raycaster.current
+        .intersectObjects(groupRef.current.children, true)
+        .filter((hit) => hit.object.type === 'Mesh');
+
+      if (intersects.length > 0) {
+        const mesh = intersects[0].object as THREE.Mesh;
+        const wardId = mesh.userData.wardId as string;
+        const ward = wards.find((w) => w.id === wardId);
+        if (ward && onClickRef.current) {
+          onClickRef.current(ward);
+        }
+      }
+    },
+    [camera, gl.domElement, wards],
+  );
+
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('click', handleClick);
     return () => {
       canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('click', handleClick);
     };
-  }, [gl.domElement, handlePointerMove]);
+  }, [gl.domElement, handlePointerMove, handleClick]);
 
   if (wardGeometries.length === 0) {
     return null;
@@ -234,7 +304,8 @@ export function Wards({ wards, onHover }: WardsProps) {
     <group ref={groupRef} name="province-wards">
       {wardGeometries.map((item, index) => {
         const isHovered = hoveredWard === item.ward.id;
-        const displayColor = isHovered ? HOVER_COLOR : item.color;
+        const isSelected = selectedWardId === item.ward.id;
+        const displayColor = isHovered || isSelected ? HOVER_COLOR : item.color;
 
         return (
           <group key={index}>
@@ -246,13 +317,31 @@ export function Wards({ wards, onHover }: WardsProps) {
             >
               <meshStandardMaterial
                 color={displayColor}
-                emissive={isHovered ? 0x222222 : 0x000000}
+                emissive={isSelected ? 0x004444 : isHovered ? 0x222222 : 0x000000}
+                emissiveIntensity={isSelected ? 1.5 : 1}
                 roughness={0.7}
                 metalness={0.1}
               />
             </mesh>
             {item.outlineGeometry && (
               <lineSegments geometry={item.outlineGeometry} material={outlineMaterial} />
+            )}
+            {/* Flickering outline for selected ward */}
+            {isSelected && item.outlineGeometry && (
+              <>
+                {/* Outer glow layer */}
+                <lineSegments
+                  geometry={item.outlineGeometry}
+                  material={glowOutlineMaterial}
+                  position={[0, 0.003, 0]}
+                />
+                {/* Inner bright outline */}
+                <lineSegments
+                  geometry={item.outlineGeometry}
+                  material={selectedOutlineMaterial}
+                  position={[0, 0.005, 0]}
+                />
+              </>
             )}
           </group>
         );

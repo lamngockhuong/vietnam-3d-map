@@ -18,7 +18,7 @@ const center = {
 const scale = 0.35;
 
 // Zoom threshold - labels only show when camera is closer than this distance
-const ZOOM_THRESHOLD = 2;
+const ZOOM_THRESHOLD = 4;
 
 function geoTo3D(lon: number, lat: number) {
   return {
