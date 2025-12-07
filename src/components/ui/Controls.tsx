@@ -13,7 +13,6 @@ import {
   X,
   Smartphone,
   Camera,
-  PanelLeft,
   Pointer,
 } from 'lucide-react';
 import type { Dictionary } from '@/i18n/dictionaries';

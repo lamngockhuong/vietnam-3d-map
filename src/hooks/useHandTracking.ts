@@ -95,7 +95,6 @@ function countExtendedFingers(landmarks: HandLandmark[]): number {
 // Check if thumb is extended (not folded into palm)
 function isThumbExtended(landmarks: HandLandmark[]): boolean {
   const thumbTip = landmarks[4];
-  const thumbBase = landmarks[2];
   const indexBase = landmarks[5];
 
   // Thumb is extended if thumb tip is far from index finger base

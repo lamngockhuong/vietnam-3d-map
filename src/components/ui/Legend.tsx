@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Map,
+  Map as MapIcon,
   X,
   MapPin,
   Users,
@@ -158,7 +158,7 @@ export function Legend({ dict, locale, highlightedProvince, selectedWard }: Lege
                   size="icon"
                   className="size-12 rounded-2xl bg-white/95 backdrop-blur-xl border-white/50 shadow-lg shadow-black/5 hover:bg-white hover:shadow-xl hover:scale-105 transition-all duration-300"
                 >
-                  <Map className="size-5 text-slate-600" />
+                  <MapIcon className="size-5 text-slate-600" />
                 </Button>
               </CollapsibleTrigger>
             </TooltipTrigger>
@@ -174,7 +174,7 @@ export function Legend({ dict, locale, highlightedProvince, selectedWard }: Lege
             <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="size-9 rounded-xl bg-gradient-to-br from-vietnam-ocean to-blue-600 flex items-center justify-center shadow-sm">
-                  <Map className="size-4.5 text-white" />
+                  <MapIcon className="size-4.5 text-white" />
                 </div>
                 <span className="font-semibold text-slate-700">
                   {dict.legend.title}
