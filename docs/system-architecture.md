@@ -48,12 +48,14 @@
 │  │                                                          │   │
 │  │  ┌────────────────────────────────────────────────────┐ │   │
 │  │  │  UI Overlay Components (HTML/CSS on Canvas)      │ │   │
-│  │  │  ├─ Controls Panel (collapsible)                  │ │   │
-│  │  │  ├─ Legend (color categories)                    │ │   │
+│  │  │  │  ├─ Controls Panel (collapsible, state persisted) │ │   │
+│  │  │  ├─ Legend (color categories, state persisted)   │ │   │
+│  │  │  ├─ Sidebar (province/ward lists, state persisted)│ │   │
 │  │  │  ├─ LanguageSwitcher (VI/EN)                     │ │   │
 │  │  │  ├─ LoadingScreen                                │ │   │
 │  │  │  ├─ HandTrackingVideo (camera feed)              │ │   │
-│  │  │  └─ Tooltip (province hover info)                │ │   │
+│  │  │  ├─ Tooltip (province hover info)                │ │   │
+│  │  │  └─ Footer (links to About, Terms, Privacy)      │ │   │
 │  │  └────────────────────────────────────────────────────┘ │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
@@ -250,6 +252,17 @@ interface Dictionary {
     pinchZoom: string
     fistReset: string
     ...
+  }
+  footer: {
+    about: string
+    terms: string
+    privacy: string
+  }
+  pages: {
+    backToMap: string
+    about: AboutPageDictionary
+    terms: TermsPageDictionary
+    privacy: PrivacyPageDictionary
   }
 }
 ```

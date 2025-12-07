@@ -2,13 +2,16 @@
 
 ## Directory Structure Overview
 
-```
+```bash
 vietnam-3d-map/
 ├── src/                              # Next.js 16 application source
 │   ├── app/
 │   │   ├── [locale]/                # Route parameter for i18n (vi, en)
 │   │   │   ├── page.tsx             # Main page per locale
-│   │   │   └── layout.tsx           # Locale-specific layout
+│   │   │   ├── layout.tsx           # Locale-specific layout
+│   │   │   ├── about/page.tsx       # About page
+│   │   │   ├── terms/page.tsx       # Terms of Service page
+│   │   │   └── privacy/page.tsx     # Privacy Policy page
 │   │   ├── layout.tsx               # Root layout (metadata, providers)
 │   │   ├── globals.css              # Global styles (Tailwind v4 @import)
 │   │   └── page.tsx                 # Root page (redirect to /vi)
@@ -105,6 +108,11 @@ vietnam-3d-map/
 │   │   │   │                         # - Size: sm, md, lg
 │   │   │   │                         # - Tailwind styled
 │   │   │   │
+│   │   │   ├── PageLayout.tsx       # Shared layout for info pages
+│   │   │   │                         # - Nav bar with back link
+│   │   │   │                         # - Footer with page links
+│   │   │   │                         # - Decorative backgrounds
+│   │   │   │
 │   │   │   └── ...                  # Other UI components as needed
 │   │   │
 │   │   └── providers/               # Context providers
@@ -131,6 +139,15 @@ vietnam-3d-map/
 │   │   │
 │   │   ├── useTooltip.ts            # Tooltip state management
 │   │   │                             # - Show/hide, content, position
+│   │   │
+│   │   ├── useUIState.ts            # UI panel state persistence
+│   │   │                             # - localStorage-based
+│   │   │                             # - First visit detection
+│   │   │                             # - Panel open/close state
+│   │   │
+│   │   ├── useClickOutside.ts       # Click outside detection
+│   │   │                             # - Mobile-only (< 640px)
+│   │   │                             # - Auto-close panels
 │   │   │
 │   │   └── useMapControls.ts        # Input handling (mouse/touch/keyboard)
 │   │                                 # - Processes input events
@@ -162,6 +179,12 @@ vietnam-3d-map/
 │   │   │                             #   - provinces: 63 names
 │   │   │                             #   - metadata: labels
 │   │   │                             #   - gestures: hand tracking text
+│   │   │                             #   - footer: page links
+│   │   │                             #   - pages: about, terms, privacy
+│   │   │
+│   │   ├── province-names.ts        # Province name translations
+│   │   │                             # - Vietnamese → English mapping
+│   │   │                             # - Used by ProvinceLabels
 │   │   │
 │   │   └── types.ts                 # Dictionary type definition
 │   │                                 # - Interface: Dictionary
@@ -331,7 +354,7 @@ vietnam-3d-map/
 
 ### Application Load Sequence
 
-```
+```bash
 1. User navigates to /vi or /en
    ↓
 2. Next.js proxy/middleware routes to [locale]/page.tsx
@@ -365,7 +388,7 @@ vietnam-3d-map/
 
 ### Province Rendering Data Flow
 
-```
+```bash
 Raw Source
 └─ data/vietnam-provinces.geojson (32 MB, GeoJSON features)
    │
@@ -412,7 +435,7 @@ Raw Source
 
 ### i18n Data Flow
 
-```
+```bash
 User navigates to /en
    ↓
 Next.js proxy routes to /en/page.tsx
@@ -435,7 +458,7 @@ Components access translations via dict:
 
 ### Camera Control Data Flow
 
-```
+```bash
 User Input (Mouse/Touch/Keyboard/Hand Gesture)
    ↓
 CameraController.tsx:
@@ -462,7 +485,7 @@ Browser:
 
 ### Development Build (pnpm dev)
 
-```
+```bash
 Next.js dev server with Turbopack
 ├─ Watches src/ for changes
 ├─ Hot Module Replacement (HMR)
@@ -473,7 +496,7 @@ Next.js dev server with Turbopack
 
 ### Production Build (pnpm build)
 
-```
+```bash
 1. Preprocessing (if needed)
    └─ pnpm preprocess → generates public/provinces.json
 

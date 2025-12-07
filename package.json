@@ -21,7 +21,7 @@
     "geojson",
     "visualization"
   ],
-  "author": "",
+  "author": "Lam Ngoc Khuong <hi@khuong.dev> (https://khuong.dev)",
   "license": "MIT",
   "dependencies": {
     "@mediapipe/camera_utils": "0.3.1675466862",
