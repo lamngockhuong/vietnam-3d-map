@@ -30,11 +30,20 @@ vietnam-3d-map/
 │   │   │   │                         # - EffectComposer (bloom post-processing)
 │   │   │   │                         # - Tooltip state management
 │   │   │   │
-│   │   │   ├── Provinces.tsx        # 63 province geometries
+│   │   │   ├── Provinces.tsx        # 34 province geometries (2025 reorganization)
 │   │   │   │                         # - Renders ExtrudeGeometry per province
 │   │   │   │                         # - Hover detection via raycasting
 │   │   │   │                         # - Color mapping by province type
-│   │   │   │                         # - Memoized for performance
+│   │   │   │                         # - Flickering outline effect on selection
+│   │   │   │
+│   │   │   ├── Wards.tsx            # Ward-level geometries
+│   │   │   │                         # - Lazy-loaded when province double-clicked
+│   │   │   │                         # - 3,321 wards across 34 provinces
+│   │   │   │                         # - Click to zoom to ward center
+│   │   │   │
+│   │   │   ├── WardLabels.tsx       # Ward name labels
+│   │   │   │                         # - Billboard text for ward names
+│   │   │   │                         # - Shown when viewing wards
 │   │   │   │
 │   │   │   ├── Ocean.tsx            # Animated water plane
 │   │   │   │                         # - Custom GLSL shaders
@@ -104,6 +113,17 @@ vietnam-3d-map/
 │   │   │   │                         # - Draggable window (useDraggable hook)
 │   │   │   │                         # - Position persisted to localStorage
 │   │   │   │
+│   │   │   ├── ScreenshotCountdown.tsx # Screenshot countdown overlay
+│   │   │   │                         # - 3-second countdown before capture
+│   │   │   │                         # - Animated ring progress indicator
+│   │   │   │                         # - Cancel button during countdown
+│   │   │   │                         # - Prevents accidental screenshots
+│   │   │   │
+│   │   │   ├── Sidebar.tsx          # Collapsible sidebar panel
+│   │   │   │                         # - Province/ward lists
+│   │   │   │                         # - Search with diacritic-insensitive matching
+│   │   │   │                         # - Virtualized lists (TanStack Virtual)
+│   │   │   │
 │   │   │   ├── Button.tsx           # Reusable button component
 │   │   │   │                         # - Variant: primary, secondary, ghost
 │   │   │   │                         # - Size: sm, md, lg
@@ -170,6 +190,15 @@ vietnam-3d-map/
 │   │   │                             # - Function: loadProvinces()
 │   │   │                             # - Maps public/provinces.json
 │   │   │
+│   │   ├── wards-data.ts            # Ward types & lazy loader
+│   │   │                             # - Interface: WardData
+│   │   │                             # - Function: loadWardsForProvince()
+│   │   │                             # - Loads public/wards/*.json on demand
+│   │   │
+│   │   ├── merger-data.ts           # 2025 province merger info
+│   │   │                             # - Generated from API data
+│   │   │                             # - Used by Legend component
+│   │   │
 │   │   └── island-data.ts           # Island coordinates & metadata
 │   │                                 # - Hoàng Sa archipelago
 │   │                                 # - Trường Sa archipelago
@@ -187,7 +216,8 @@ vietnam-3d-map/
 │   │   │                             #   - common: title, loading, etc.
 │   │   │                             #   - controls: UI instructions
 │   │   │                             #   - legend: color meanings
-│   │   │                             #   - provinces: 63 names
+│   │   │                             #   - provinces: 34 names
+│   │   │                             #   - screenshot: countdown UI text
 │   │   │                             #   - metadata: labels
 │   │   │                             #   - gestures: hand tracking text
 │   │   │                             #   - footer: page links
@@ -251,10 +281,15 @@ vietnam-3d-map/
 │       └── ...                      # Additional CSS modules
 │
 ├── public/                          # Static files served at root
-│   ├── provinces.json               # Preprocessed province data (~800 KB)
+│   ├── provinces.json               # Preprocessed province data (~570 KB)
 │   │                                 # - Array of ProvinceData objects
 │   │                                 # - Contains coordinates, metadata
-│   │                                 # - 97.6% reduction from source
+│   │                                 # - 97.7% reduction from source
+│   │
+│   ├── wards/                       # Ward data per province (~9.4 MB total)
+│   │   ├── 01.json                  # Hà Nội wards
+│   │   ├── 79.json                  # TP. Hồ Chí Minh wards
+│   │   └── ...                      # 34 province ward files
 │   │
 │   └── [legacy files]               # Standalone HTML demos (not used in app)
 │       ├── index.html
@@ -262,16 +297,18 @@ vietnam-3d-map/
 │       └── ... (other demo files)
 │
 ├── data/                            # Raw source data
-│   └── vietnam-provinces.geojson    # Raw GeoJSON (32 MB)
-│                                     # - Source for preprocessing
-│                                     # - Not included in build
+│   ├── vietnam-provinces.geojson    # Raw province GeoJSON (32 MB)
+│   ├── vietnam-wards.geojson        # Raw ward GeoJSON (276 MB, gitignored)
+│   ├── provinces-metadata.json      # API metadata (from fetch-data.ts)
+│   └── wards-metadata/              # Ward metadata per province
 │
 ├── scripts/                         # Build & utility scripts
-│   └── preprocess-geojson.ts        # Data preprocessing script
-│                                     # - Input: data/vietnam-provinces.geojson
-│                                     # - Algorithm: Douglas-Peucker simplification
-│                                     # - Output: public/provinces.json
-│                                     # - Run: pnpm preprocess
+│   ├── prepare-data.ts              # Master data pipeline script
+│   ├── fetch-data.ts                # Fetch metadata from API
+│   ├── generate-merger-data.ts      # Generate merger-data.ts
+│   ├── merge-data.ts                # Merge metadata with GeoJSON
+│   ├── preprocess-geojson.ts        # Province data preprocessing
+│   └── preprocess-wards.ts          # Ward data preprocessing
 │
 ├── docs/                            # Documentation (this directory)
 │   ├── project-overview-pdr.md      # Vision, goals, requirements
@@ -303,7 +340,7 @@ vietnam-3d-map/
 │   ├── postcss.config.mjs           # PostCSS configuration
 │   │                                 # - Tailwind CSS 4 plugin
 │   │
-│   ├── eslint.config.js             # ESLint rules
+│   ├── biome.json                   # Biome linter/formatter config
 │   │
 │   ├── .gitignore                   # Git ignore rules
 │   ├── CLAUDE.md                    # Project-specific instructions
@@ -325,9 +362,10 @@ vietnam-3d-map/
 
 | File | Responsibility |
 |------|-----------------|
-| `src/components/MapWrapper.tsx` | Client wrapper, province preloading, state setup |
+| `src/components/MapWrapper.tsx` | Client wrapper, state management, screenshot countdown |
 | `src/components/map/VietnamMap.tsx` | R3F Canvas, scene setup, lighting, post-processing |
-| `src/components/map/Provinces.tsx` | 63 ExtrudeGeometry meshes, hover detection, colors |
+| `src/components/map/Provinces.tsx` | 34 ExtrudeGeometry meshes, hover detection, colors |
+| `src/components/map/Wards.tsx` | Ward geometries, lazy-loaded per province |
 | `src/components/map/CameraController.tsx` | Interaction handling, camera animation |
 | `src/components/map/Ocean.tsx` | Water plane with animated GLSL shader |
 | `src/components/map/SkyDome.tsx` | Gradient background |
@@ -337,8 +375,10 @@ vietnam-3d-map/
 | File | Responsibility |
 |------|-----------------|
 | `src/components/ui/Controls.tsx` | Control panel with instructions |
-| `src/components/ui/Legend.tsx` | Color category legend |
-| `src/components/ui/Tooltip.tsx` | Province hover info display |
+| `src/components/ui/Legend.tsx` | Color category legend, location info |
+| `src/components/ui/Sidebar.tsx` | Province/ward lists, search |
+| `src/components/ui/HandTrackingVideo.tsx` | Draggable camera preview |
+| `src/components/ui/ScreenshotCountdown.tsx` | 3-second countdown overlay |
 | `src/components/ui/LanguageSwitcher.tsx` | Language selection (VI/EN) |
 | `src/components/ui/LoadingScreen.tsx` | Loading state display |
 
@@ -347,18 +387,23 @@ vietnam-3d-map/
 | File | Purpose |
 |------|---------|
 | `src/data/provinces-data.ts` | Province types & loader function |
+| `src/data/wards-data.ts` | Ward types & lazy loader function |
+| `src/data/merger-data.ts` | 2025 province merger information |
 | `src/i18n/config.ts` | Locale configuration with type safety |
 | `src/i18n/dictionaries.ts` | Vietnamese & English translations |
-| `src/types/index.ts` | Global TypeScript type definitions |
-| `public/provinces.json` | Preprocessed province data (~800 KB) |
+| `public/provinces.json` | Preprocessed province data (~570 KB) |
+| `public/wards/*.json` | Preprocessed ward data (~9.4 MB total) |
 
 ### Build & Scripts
 
 | File | Purpose |
 |------|---------|
-| `scripts/preprocess-geojson.ts` | GeoJSON to JSON conversion with simplification |
+| `scripts/prepare-data.ts` | Master data pipeline script |
+| `scripts/fetch-data.ts` | Fetch metadata from sapnhap.bando.com.vn API |
+| `scripts/preprocess-geojson.ts` | Province data preprocessing |
+| `scripts/preprocess-wards.ts` | Ward data preprocessing |
 | `next.config.ts` | Next.js configuration (disables strict mode for WebGL) |
-| `tailwind.config.ts` | Tailwind CSS v4 theme configuration |
+| `biome.json` | Biome linter/formatter configuration |
 | `package.json` | Dependencies & npm/pnpm scripts |
 
 ## Data Flow
@@ -377,7 +422,7 @@ vietnam-3d-map/
 5. MapWrapper.tsx mounts
    ├─ Shows LoadingScreen
    ├─ Fetches public/provinces.json
-   ├─ Creates Three.js geometries for 63 provinces
+   ├─ Creates Three.js geometries for 34 provinces
    └─ Sets loaded state = true
    ↓
 6. Canvas mounts (R3F dynamic import with ssr: false)
@@ -394,7 +439,8 @@ vietnam-3d-map/
    ├─ Mouse/touch input
    ├─ Keyboard shortcuts
    ├─ Hand gestures (if enabled)
-   └─ Camera animation to target
+   ├─ Camera animation to target
+   └─ Screenshot with 3-second countdown
 ```
 
 ### Province Rendering Data Flow
@@ -413,12 +459,15 @@ Raw Source
    │     └─ Generate ProvinceData[]
    │
    ├─ Output
-   │  ├─ public/provinces.json (~800 KB)
+   │  ├─ public/provinces.json (~570 KB)
    │  │  └─ ProvinceData[] as JSON
    │  │
-   │  └─ src/data/provinces-data.ts
-   │     ├─ ProvinceData type definition
-   │     └─ loadProvinces() function
+   │  ├─ public/wards/*.json (~9.4 MB total)
+   │  │  └─ WardData[] per province
+   │  │
+   │  └─ src/data/provinces-data.ts, wards-data.ts
+   │     ├─ ProvinceData, WardData type definitions
+   │     └─ loadProvinces(), loadWardsForProvince() functions
    │
    ├─ Runtime Loading
    │  ├─ MapWrapper.tsx: fetch('public/provinces.json')
@@ -535,12 +584,15 @@ Next.js dev server with Turbopack
 ### Development Scripts
 
 ```bash
-pnpm dev              # Start dev server
+pnpm dev              # Start dev server with Turbopack
 pnpm build            # Production build
 pnpm start            # Start production server
-pnpm lint             # Run ESLint
+pnpm lint             # Run Biome linter
+pnpm format           # Run Biome formatter
+pnpm check            # Run Biome lint + format
+pnpm prepare-data     # Run complete data pipeline
 pnpm preprocess       # Regenerate provinces.json from GeoJSON
-pnpm type-check       # Run TypeScript type checking
+pnpm preprocess:wards # Regenerate wards/*.json from GeoJSON
 ```
 
 ## Performance Characteristics
@@ -553,16 +605,18 @@ pnpm type-check       # Run TypeScript type checking
 | Main JS (shared) | ~200 KB | React, Next.js runtime |
 | Locale JS (/vi) | ~150 KB | Locale-specific code |
 | CSS (Tailwind) | ~100 KB | All utility classes |
-| Provinces JSON | ~800 KB | Loaded async, not critical |
+| Provinces JSON | ~570 KB | Loaded async, not critical |
+| Wards JSON | ~9.4 MB | Lazy-loaded per province |
 | **Total Initial** | **~1.3 MB** | Before provinces load |
 
 ### Data Size
 
 | Source | Size | Reduction | Notes |
 |--------|------|-----------|-------|
-| GeoJSON (raw) | 32 MB | - | Source file (not in repo) |
-| GeoJSON (in repo) | 32 MB | - | Not used in build |
-| provinces.json | 800 KB | 97.6% | Preprocessed output |
+| GeoJSON provinces (raw) | 32 MB | - | Source file |
+| GeoJSON wards (raw) | 276 MB | - | Source file (gitignored) |
+| provinces.json | 570 KB | 97.7% | Preprocessed output |
+| wards/*.json | 9.4 MB | 96.6% | Preprocessed per province |
 | In-memory (Geometries) | ~100 MB | - | Three.js GPU memory |
 
 ### Runtime Performance
@@ -604,10 +658,10 @@ pnpm type-check       # Run TypeScript type checking
 
 ```json
 {
+  "@biomejs/biome": "2.3.8",  // Linter & formatter
   "typescript": "5.9.3",
-  "tsx": "4.19.2",            // TypeScript executor
-  "eslint": "9.x",
-  "postcss": "8.4.x"
+  "tsx": "4.21.0",            // TypeScript executor
+  "postcss": "8.5.6"
 }
 ```
 
@@ -649,8 +703,13 @@ import { Provinces } from '../../../components/map/Provinces'
 // Component State (useState)
 ├─ MapWrapper
 │  ├─ provinces: ProvinceData[]
-│  ├─ loading: boolean
-│  └─ error: Error | null
+│  ├─ highlightedProvince: ProvinceData | null
+│  ├─ selectedProvince: ProvinceData | null
+│  ├─ selectedWard: WardData | null
+│  ├─ wards: WardData[]
+│  ├─ sidebarOpen: boolean
+│  ├─ screenshotCountdown: number | null
+│  └─ gestureState: HandGestureState | null
 │
 ├─ VietnamMap
 │  ├─ hoveredProvinceId: string | null
