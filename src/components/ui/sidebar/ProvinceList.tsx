@@ -2,6 +2,7 @@
 
 import { useRef, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { MapPin, Star } from 'lucide-react';
 import type { ProvinceData } from '@/data/provinces-data';
 import type { Dictionary } from '@/i18n/dictionaries';
 
@@ -26,12 +27,20 @@ function matchesSearch(name: string, query: string): boolean {
   return normalizedName.includes(normalizedQuery);
 }
 
-// Type badge colors
-function getTypeBadgeColor(type: string): string {
+// Type badge styling
+function getTypeBadgeStyle(type: string): { bg: string; text: string; icon: React.ReactNode } {
   if (type.includes('Trung ương') || type === 'Thành phố') {
-    return 'bg-red-100 text-red-700';
+    return {
+      bg: 'bg-gradient-to-r from-red-50 to-rose-50 border-red-100',
+      text: 'text-red-700',
+      icon: <Star className="size-2.5" />,
+    };
   }
-  return 'bg-gray-100 text-gray-600';
+  return {
+    bg: 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-100',
+    text: 'text-slate-600',
+    icon: <MapPin className="size-2.5" />,
+  };
 }
 
 export function ProvinceList({
@@ -54,7 +63,7 @@ export function ProvinceList({
   const virtualizer = useVirtualizer({
     count: filteredProvinces.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 28,
+    estimateSize: () => 56,
     overscan: 5,
   });
 
@@ -70,8 +79,13 @@ export function ProvinceList({
 
   if (filteredProvinces.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500 text-sm">
-        {dict.sidebar.noResults}
+      <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 text-center">
+        <div className="size-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+          <MapPin className="size-7 text-slate-400" />
+        </div>
+        <p className="text-slate-500 text-sm font-medium">
+          {dict.sidebar.noResults}
+        </p>
       </div>
     );
   }
@@ -88,6 +102,7 @@ export function ProvinceList({
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const province = filteredProvinces[virtualRow.index];
           const isSelected = province.id === selectedId;
+          const badgeStyle = getTypeBadgeStyle(province.type);
 
           return (
             <div
@@ -104,26 +119,62 @@ export function ProvinceList({
               <button
                 onClick={() => onSelect(province)}
                 onDoubleClick={() => onDoubleClick(province)}
-                className={`w-full px-3 py-1.5 text-left transition-all duration-200 flex items-center justify-between gap-2 group ${
+                className={`w-full h-full px-4 py-2.5 text-left transition-all duration-200 flex items-center gap-3 group ${
                   isSelected
-                    ? 'bg-gradient-to-r from-vietnam-ocean/20 to-vietnam-ocean/5 border-l-3 border-vietnam-ocean shadow-sm'
-                    : 'hover:bg-gradient-to-r hover:from-gray-100 hover:to-transparent hover:border-l-3 hover:border-gray-300 border-l-3 border-transparent'
+                    ? 'bg-gradient-to-r from-vietnam-ocean/10 via-vietnam-ocean/5 to-transparent'
+                    : 'hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent'
                 }`}
               >
-                <span className={`font-medium truncate transition-colors duration-200 ${
-                  isSelected
-                    ? 'text-vietnam-ocean'
-                    : 'text-gray-700 group-hover:text-gray-900'
-                }`}>
-                  {province.name}
-                </span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 transition-transform duration-200 group-hover:scale-105 ${getTypeBadgeColor(
-                    province.type
-                  )} ${isSelected ? 'ring-1 ring-vietnam-ocean/30' : ''}`}
+                {/* Selection indicator */}
+                <div
+                  className={`w-1 h-9 rounded-full transition-all duration-300 shrink-0 ${
+                    isSelected
+                      ? 'bg-gradient-to-b from-vietnam-ocean to-blue-600 shadow-sm shadow-vietnam-ocean/30'
+                      : 'bg-slate-200 group-hover:bg-slate-300'
+                  }`}
+                />
+
+                {/* Province info */}
+                <div className="flex-1 min-w-0">
+                  <span
+                    className={`block font-semibold text-sm truncate transition-colors duration-200 ${
+                      isSelected
+                        ? 'text-vietnam-ocean'
+                        : 'text-slate-700 group-hover:text-slate-900'
+                    }`}
+                  >
+                    {province.name}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 mt-1 text-[10px] px-2 py-0.5 rounded-full border font-medium transition-transform duration-200 group-hover:scale-105 ${badgeStyle.bg} ${badgeStyle.text}`}
+                  >
+                    {badgeStyle.icon}
+                    {province.type}
+                  </span>
+                </div>
+
+                {/* Chevron indicator */}
+                <div
+                  className={`size-7 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0 ${
+                    isSelected
+                      ? 'bg-vietnam-ocean/10 text-vietnam-ocean'
+                      : 'text-slate-300 group-hover:text-slate-400 group-hover:bg-slate-100'
+                  }`}
                 >
-                  {province.type}
-                </span>
+                  <svg
+                    className="size-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
               </button>
             </div>
           );

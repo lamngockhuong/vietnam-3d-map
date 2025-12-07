@@ -9,12 +9,12 @@ import {
   Mouse,
   MoveVertical,
   Minimize2,
-  Settings2,
+  Gamepad2,
   X,
+  Smartphone,
 } from 'lucide-react';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Collapsible,
   CollapsibleContent,
@@ -49,105 +49,141 @@ export function Controls({ dict, onResetCamera }: ControlsProps) {
   return (
     <div ref={containerRef}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        {/* Collapsed state - compact icon button */}
+        {/* Collapsed state - floating action button */}
         {!isOpen && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-11 bg-white/90 backdrop-blur-md border-gray-100 shadow-lg hover:bg-white hover:shadow-xl"
-              >
-                <Settings2 className="size-5 text-gray-600" />
-              </Button>
-            </CollapsibleTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="right">{dict.controls.title}</TooltipContent>
-        </Tooltip>
-      )}
-
-      <CollapsibleContent>
-        <Card className="bg-white/90 backdrop-blur-md border-gray-100 shadow-lg min-w-[240px] py-0 gap-0">
-          <CardHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
-            <CardTitle className="text-gray-700 font-semibold text-xs tracking-wide uppercase">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-12 rounded-2xl bg-white/95 backdrop-blur-xl border-white/50 shadow-lg shadow-black/5 hover:bg-white hover:shadow-xl hover:scale-105 transition-all duration-300"
+                >
+                  <Gamepad2 className="size-5 text-slate-600" />
+                </Button>
+              </CollapsibleTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="font-medium">
               {dict.controls.title}
-            </CardTitle>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 -mr-1 text-gray-400 hover:text-gray-600"
-              >
-                <X className="size-4" />
-              </Button>
-            </CollapsibleTrigger>
-          </CardHeader>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
-          <CardContent className="px-4 py-3 space-y-4">
-            {/* Touch Controls - shown on mobile */}
-            {isTouchDevice && (
-              <ControlSection title={dict.controls.touchControls}>
-                <ControlItem icon={<DragIcon />} text={dict.controls.touchDrag} />
-                <ControlItem icon={<PinchIcon />} text={dict.controls.touchPinch} />
-                <ControlItem icon={<TwoFingerIcon />} text={dict.controls.touchTwoFinger} />
+        <CollapsibleContent>
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/50 shadow-xl shadow-black/10 min-w-[280px] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
+                  <Gamepad2 className="size-4.5 text-white" />
+                </div>
+                <span className="font-semibold text-slate-700">
+                  {dict.controls.title}
+                </span>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                >
+                  <X className="size-4" />
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+
+            <div className="p-4 space-y-5">
+              {/* Touch Controls - shown on mobile */}
+              {isTouchDevice && (
+                <ControlSection
+                  title={dict.controls.touchControls}
+                  icon={<Smartphone className="size-4 text-white" />}
+                  gradient="from-pink-500 to-rose-600"
+                >
+                  <ControlItem icon={<DragIcon />} text={dict.controls.touchDrag} />
+                  <ControlItem icon={<PinchIcon />} text={dict.controls.touchPinch} />
+                  <ControlItem icon={<TwoFingerIcon />} text={dict.controls.touchTwoFinger} />
+                </ControlSection>
+              )}
+
+              {/* Movement/Rotation Controls */}
+              <ControlSection
+                title={dict.controls.movement}
+                icon={<Mouse className="size-4 text-white" />}
+                gradient="from-blue-500 to-cyan-600"
+              >
+                <ControlItem icon={<Mouse className="size-4" />} text={dict.controls.drag} />
+                <ControlItem icon={<KeyboardKey label="R" />} text={dict.controls.reset} />
               </ControlSection>
-            )}
 
-            {/* Movement/Rotation Controls */}
-            <ControlSection title={dict.controls.movement}>
-              <ControlItem icon={<Mouse className="size-4" />} text={dict.controls.drag} />
-              <ControlItem icon={<KeyboardKey label="R" />} text={dict.controls.reset} />
-            </ControlSection>
-
-            {/* Zoom Controls */}
-            <ControlSection title={dict.controls.zoomLabel}>
-              <ControlItem icon={<MoveVertical className="size-4" />} text={dict.controls.scroll} />
-              <ControlItem icon={<KeyboardKey label="+/-" />} text={dict.controls.zoom} />
-            </ControlSection>
-
-            {/* Hand Tracking Section */}
-            <ControlSection title={dict.controls.handTracking} noBorder>
-              <ControlItem icon={<Hand className="size-4" />} text={dict.controls.openPalm} />
-              <ControlItem icon={<Minimize2 className="size-4" />} text={dict.controls.pinch} />
-              <ControlItem icon={<FistIcon />} text={dict.controls.fist} />
-            </ControlSection>
-
-            {/* Reset Button */}
-            {onResetCamera && (
-              <Button
-                variant="secondary"
-                onClick={onResetCamera}
-                className="w-full"
+              {/* Zoom Controls */}
+              <ControlSection
+                title={dict.controls.zoomLabel}
+                icon={<MoveVertical className="size-4 text-white" />}
+                gradient="from-emerald-500 to-teal-600"
               >
-                <Home className="size-4" />
-                Reset View
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </CollapsibleContent>
-    </Collapsible>
+                <ControlItem icon={<MoveVertical className="size-4" />} text={dict.controls.scroll} />
+                <ControlItem icon={<KeyboardKey label="+/-" />} text={dict.controls.zoom} />
+              </ControlSection>
+
+              {/* Hand Tracking Section */}
+              <ControlSection
+                title={dict.controls.handTracking}
+                icon={<Hand className="size-4 text-white" />}
+                gradient="from-amber-500 to-orange-600"
+                noBorder
+              >
+                <ControlItem icon={<Hand className="size-4" />} text={dict.controls.openPalm} />
+                <ControlItem icon={<Minimize2 className="size-4" />} text={dict.controls.pinch} />
+                <ControlItem icon={<FistIcon />} text={dict.controls.fist} />
+              </ControlSection>
+
+              {/* Reset Button */}
+              {onResetCamera && (
+                <Button
+                  variant="outline"
+                  onClick={onResetCamera}
+                  className="w-full h-11 rounded-xl bg-gradient-to-r from-slate-50 to-white border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group"
+                >
+                  <Home className="size-4 mr-2 text-slate-500 group-hover:text-vietnam-ocean transition-colors" />
+                  <span className="font-medium text-slate-600 group-hover:text-slate-800">
+                    Reset View
+                  </span>
+                </Button>
+              )}
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
 
-// Control section with title
+// Control section with title and icon
 function ControlSection({
   title,
+  icon,
+  gradient,
   children,
   noBorder = false,
 }: {
   title: string;
+  icon: React.ReactNode;
+  gradient: string;
   children: React.ReactNode;
   noBorder?: boolean;
 }) {
   return (
-    <div className={noBorder ? '' : 'pb-4 border-b border-gray-200'}>
-      <div className="text-muted-foreground text-[10px] mb-2.5 font-semibold uppercase tracking-wider">
-        {title}
+    <div className={noBorder ? '' : 'pb-4 border-b border-slate-100'}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className={`size-7 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+          {icon}
+        </div>
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          {title}
+        </span>
       </div>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-1.5 pl-0.5">{children}</div>
     </div>
   );
 }
@@ -155,11 +191,13 @@ function ControlSection({
 // Reusable control item component
 function ControlItem({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-3 text-gray-600 text-sm">
-      <div className="size-6 flex items-center justify-center text-gray-500 shrink-0">
+    <div className="flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-slate-50 transition-colors group">
+      <div className="size-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors">
         {icon}
       </div>
-      <span className="leading-tight">{text}</span>
+      <span className="text-sm text-slate-600 font-medium group-hover:text-slate-800 transition-colors leading-tight">
+        {text}
+      </span>
     </div>
   );
 }
@@ -167,13 +205,13 @@ function ControlItem({ icon, text }: { icon: React.ReactNode; text: string }) {
 // Keyboard key badge
 function KeyboardKey({ label }: { label: string }) {
   return (
-    <span className="px-2 py-1 bg-muted rounded text-[11px] font-mono text-muted-foreground min-w-[24px] text-center">
+    <span className="px-2 py-1 bg-slate-200 rounded-md text-[11px] font-mono font-semibold text-slate-600 min-w-[28px] text-center shadow-sm border border-slate-300">
       {label}
     </span>
   );
 }
 
-// Custom SVG Icons (not available in lucide-react)
+// Custom SVG Icons
 function DragIcon() {
   return (
     <svg
