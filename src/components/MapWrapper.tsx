@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/ui/Sidebar';
 import { loadProvinces, type ProvinceData } from '@/data/provinces-data';
 import { loadWardsForProvince, type WardData } from '@/data/wards-data';
 import type { HandGestureState } from '@/hooks/useHandTracking';
+import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 
 const VietnamMap = dynamic(
@@ -32,9 +33,10 @@ const VietnamMap = dynamic(
 
 interface MapWrapperProps {
   dict: Dictionary;
+  locale: Locale;
 }
 
-export function MapWrapper({ dict }: MapWrapperProps) {
+export function MapWrapper({ dict, locale }: MapWrapperProps) {
   const [handTrackingEnabled, setHandTrackingEnabled] = useState(false);
   const [gestureState, setGestureState] = useState<HandGestureState | null>(null);
   const [provinces, setProvinces] = useState<ProvinceData[] | null>(null);
@@ -151,6 +153,7 @@ export function MapWrapper({ dict }: MapWrapperProps) {
       <VietnamMap
         ref={mapRef}
         dict={dict}
+        locale={locale}
         gestureState={gestureState}
         provinces={provinces}
         highlightedProvince={highlightedProvince}

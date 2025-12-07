@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useClickOutside } from '@/hooks/useClickOutside';
+import { useUIState } from '@/hooks/useUIState';
 import {
   Hand,
   Home,
@@ -30,22 +32,25 @@ interface ControlsProps {
 }
 
 export function Controls({ dict, onResetCamera }: ControlsProps) {
-  // Collapse by default on mobile
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useUIState('controlsOpen');
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Detect touch device and set initial collapsed state
+  // Detect touch device
   useEffect(() => {
     setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
-    // Expand on desktop, stay collapsed on mobile
-    const isMobile = window.innerWidth < 640;
-    setIsOpen(!isMobile);
   }, []);
 
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, [setIsOpen]);
+
+  const containerRef = useClickOutside<HTMLDivElement>(handleClose, isOpen);
+
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      {/* Collapsed state - compact icon button */}
-      {!isOpen && (
+    <div ref={containerRef}>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        {/* Collapsed state - compact icon button */}
+        {!isOpen && (
         <Tooltip>
           <TooltipTrigger asChild>
             <CollapsibleTrigger asChild>
@@ -123,6 +128,7 @@ export function Controls({ dict, onResetCamera }: ControlsProps) {
         </Card>
       </CollapsibleContent>
     </Collapsible>
+    </div>
   );
 }
 

@@ -16,6 +16,7 @@ import type { WebGLRenderer } from 'three';
 import type { ProvinceData } from '@/data/provinces-data';
 import { loadWardsForProvince, type WardData } from '@/data/wards-data';
 import type { HandGestureState } from '@/hooks/useHandTracking';
+import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { CameraController, type CameraControllerRef } from './CameraController';
 import { Ocean } from './Ocean';
@@ -37,6 +38,7 @@ export interface VietnamMapRef {
 
 interface VietnamMapProps {
   dict: Dictionary;
+  locale: Locale;
   gestureState?: HandGestureState | null;
   provinces: ProvinceData[];
   showLabels?: boolean;
@@ -107,6 +109,7 @@ function formatPopulation(pop: number): string {
 export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function VietnamMap(
   {
     dict,
+    locale,
     gestureState,
     provinces,
     showLabels = true,
@@ -319,7 +322,7 @@ export const VietnamMap = forwardRef<VietnamMapRef, VietnamMapProps>(function Vi
                   onClick={handleProvinceClick}
                   onDoubleClick={handleProvinceDoubleClick}
                 />
-                <ProvinceLabels provinces={provinces} showLabels={showLabels} />
+                <ProvinceLabels provinces={provinces} showLabels={showLabels} locale={locale} />
               </>
             )}
           </group>

@@ -83,6 +83,66 @@ export interface Dictionary {
     selectProvince: string;
     loading: string;
   };
+  // Footer
+  footer: {
+    about: string;
+    terms: string;
+    privacy: string;
+  };
+  // Pages
+  pages: {
+    backToMap: string;
+    about: {
+      title: string;
+      description: string;
+      purpose: string;
+      purposeText: string;
+      features: string;
+      featuresText: string[];
+      technology: string;
+      technologyText: string;
+      openSource: string;
+      openSourceText: string;
+      contact: string;
+      contactText: string;
+    };
+    terms: {
+      title: string;
+      description: string;
+      acceptance: string;
+      acceptanceText: string;
+      educationalUse: string;
+      educationalUseText: string;
+      accuracy: string;
+      accuracyText: string;
+      intellectualProperty: string;
+      intellectualPropertyText: string;
+      limitations: string;
+      limitationsText: string;
+      changes: string;
+      changesText: string;
+      lastUpdated: string;
+    };
+    privacy: {
+      title: string;
+      description: string;
+      collection: string;
+      collectionText: string;
+      localStorage: string;
+      localStorageText: string;
+      cookies: string;
+      cookiesText: string;
+      thirdParty: string;
+      thirdPartyText: string;
+      children: string;
+      childrenText: string;
+      changes: string;
+      changesText: string;
+      contact: string;
+      contactText: string;
+      lastUpdated: string;
+    };
+  };
 }
 
 const dictionaries: Record<Locale, Dictionary> = {
@@ -160,6 +220,70 @@ const dictionaries: Record<Locale, Dictionary> = {
       selectProvince: 'Chọn một tỉnh để xem chi tiết',
       loading: 'Đang tải...',
     },
+    footer: {
+      about: 'Giới thiệu',
+      terms: 'Điều khoản',
+      privacy: 'Bảo mật',
+    },
+    pages: {
+      backToMap: 'Quay lại bản đồ',
+      about: {
+        title: 'Giới thiệu',
+        description: 'Tìm hiểu về Bản đồ 3D Việt Nam',
+        purpose: 'Mục đích',
+        purposeText: 'Bản đồ 3D Việt Nam là một dự án giáo dục nhằm giúp mọi người tìm hiểu về địa lý Việt Nam một cách trực quan và sinh động. Dự án này được xây dựng với mục tiêu giáo dục, phi thương mại.',
+        features: 'Tính năng',
+        featuresText: [
+          'Hiển thị các tỉnh thành của Việt Nam với hình dạng 3D',
+          'Thông tin chi tiết về dân số, diện tích của từng tỉnh',
+          'Hiển thị quần đảo Hoàng Sa và Trường Sa - chủ quyền thiêng liêng của Việt Nam',
+          'Hỗ trợ điều khiển bằng cử chỉ tay thông qua camera',
+          'Giao diện đa ngôn ngữ (Tiếng Việt & English)',
+        ],
+        technology: 'Công nghệ',
+        technologyText: 'Dự án được xây dựng với Next.js, React Three Fiber, Three.js và TypeScript. Dữ liệu địa lý được xử lý từ GeoJSON và tối ưu hóa để hiển thị trên web.',
+        openSource: 'Mã nguồn mở',
+        openSourceText: 'Dự án này là mã nguồn mở và có sẵn trên GitHub tại github.com/lamngockhuong/vietnam-3d-map. Chúng tôi hoan nghênh các đóng góp từ cộng đồng.',
+        contact: 'Liên hệ',
+        contactText: 'Nếu bạn có câu hỏi hoặc góp ý, vui lòng liên hệ qua website khuong.dev',
+      },
+      terms: {
+        title: 'Điều khoản sử dụng',
+        description: 'Điều khoản và điều kiện sử dụng Bản đồ 3D Việt Nam',
+        acceptance: 'Chấp nhận điều khoản',
+        acceptanceText: 'Bằng việc truy cập và sử dụng website này, bạn đồng ý tuân thủ các điều khoản và điều kiện được nêu dưới đây.',
+        educationalUse: 'Mục đích giáo dục',
+        educationalUseText: 'Website này được tạo ra với mục đích giáo dục và phi thương mại. Nội dung được cung cấp miễn phí để hỗ trợ việc học tập và nghiên cứu về địa lý Việt Nam.',
+        accuracy: 'Độ chính xác dữ liệu',
+        accuracyText: 'Chúng tôi cố gắng cung cấp thông tin chính xác nhất có thể. Tuy nhiên, dữ liệu địa lý và thống kê có thể thay đổi theo thời gian. Vui lòng tham khảo các nguồn chính thức để có thông tin cập nhật nhất.',
+        intellectualProperty: 'Quyền sở hữu trí tuệ',
+        intellectualPropertyText: 'Mã nguồn của dự án được phát hành theo giấy phép mã nguồn mở. Dữ liệu địa lý được sử dụng từ các nguồn công khai.',
+        limitations: 'Giới hạn trách nhiệm',
+        limitationsText: 'Website này được cung cấp "nguyên trạng". Chúng tôi không chịu trách nhiệm về bất kỳ thiệt hại nào phát sinh từ việc sử dụng website.',
+        changes: 'Thay đổi điều khoản',
+        changesText: 'Chúng tôi có quyền cập nhật các điều khoản này bất cứ lúc nào. Việc tiếp tục sử dụng website sau khi thay đổi đồng nghĩa với việc bạn chấp nhận các điều khoản mới.',
+        lastUpdated: 'Cập nhật lần cuối: Tháng 12, 2025',
+      },
+      privacy: {
+        title: 'Chính sách bảo mật',
+        description: 'Chính sách bảo mật của Bản đồ 3D Việt Nam',
+        collection: 'Thu thập dữ liệu',
+        collectionText: 'Chúng tôi không thu thập bất kỳ thông tin cá nhân nào từ người dùng. Website hoạt động hoàn toàn ở phía client và không yêu cầu đăng ký tài khoản.',
+        localStorage: 'Lưu trữ cục bộ',
+        localStorageText: 'Website sử dụng localStorage của trình duyệt để lưu các tùy chọn giao diện (như trạng thái đóng/mở của các panel). Dữ liệu này chỉ được lưu trên thiết bị của bạn.',
+        cookies: 'Cookies',
+        cookiesText: 'Website không sử dụng cookies để theo dõi người dùng.',
+        thirdParty: 'Dịch vụ bên thứ ba',
+        thirdPartyText: 'Website có thể sử dụng các dịch vụ bên thứ ba như CDN để tải thư viện. Các dịch vụ này có thể có chính sách bảo mật riêng.',
+        children: 'Trẻ em',
+        childrenText: 'Website này phù hợp cho mọi lứa tuổi và đặc biệt khuyến khích sử dụng cho mục đích giáo dục.',
+        changes: 'Thay đổi chính sách',
+        changesText: 'Chúng tôi có thể cập nhật chính sách bảo mật này. Các thay đổi sẽ được đăng trên trang này.',
+        contact: 'Liên hệ',
+        contactText: 'Nếu bạn có câu hỏi về chính sách bảo mật, vui lòng liên hệ qua khuong.dev',
+        lastUpdated: 'Cập nhật lần cuối: Tháng 12, 2025',
+      },
+    },
   },
   en: {
     meta: {
@@ -234,6 +358,70 @@ const dictionaries: Record<Locale, Dictionary> = {
       backToProvinces: 'Back to provinces',
       selectProvince: 'Select a province to view details',
       loading: 'Loading...',
+    },
+    footer: {
+      about: 'About',
+      terms: 'Terms',
+      privacy: 'Privacy',
+    },
+    pages: {
+      backToMap: 'Back to map',
+      about: {
+        title: 'About',
+        description: 'Learn about Vietnam 3D Map',
+        purpose: 'Purpose',
+        purposeText: 'Vietnam 3D Map is an educational project designed to help people learn about Vietnam\'s geography in an interactive and engaging way. This project is built for educational purposes and is non-commercial.',
+        features: 'Features',
+        featuresText: [
+          'Display provinces of Vietnam in 3D',
+          'Detailed information about population and area of each province',
+          'Display Paracel and Spratly Islands - sacred sovereignty of Vietnam',
+          'Hand gesture control support via camera',
+          'Multilingual interface (Vietnamese & English)',
+        ],
+        technology: 'Technology',
+        technologyText: 'The project is built with Next.js, React Three Fiber, Three.js, and TypeScript. Geographic data is processed from GeoJSON and optimized for web display.',
+        openSource: 'Open Source',
+        openSourceText: 'This project is open source and available on GitHub at github.com/lamngockhuong/vietnam-3d-map. We welcome contributions from the community.',
+        contact: 'Contact',
+        contactText: 'If you have questions or feedback, please contact via khuong.dev',
+      },
+      terms: {
+        title: 'Terms of Service',
+        description: 'Terms and conditions for using Vietnam 3D Map',
+        acceptance: 'Acceptance of Terms',
+        acceptanceText: 'By accessing and using this website, you agree to comply with the terms and conditions outlined below.',
+        educationalUse: 'Educational Purpose',
+        educationalUseText: 'This website is created for educational and non-commercial purposes. Content is provided free of charge to support learning and research about Vietnam\'s geography.',
+        accuracy: 'Data Accuracy',
+        accuracyText: 'We strive to provide the most accurate information possible. However, geographic and statistical data may change over time. Please refer to official sources for the most up-to-date information.',
+        intellectualProperty: 'Intellectual Property',
+        intellectualPropertyText: 'The project source code is released under an open source license. Geographic data is used from public sources.',
+        limitations: 'Limitation of Liability',
+        limitationsText: 'This website is provided "as is". We are not responsible for any damages arising from the use of the website.',
+        changes: 'Changes to Terms',
+        changesText: 'We reserve the right to update these terms at any time. Continued use of the website after changes means you accept the new terms.',
+        lastUpdated: 'Last updated: December 2025',
+      },
+      privacy: {
+        title: 'Privacy Policy',
+        description: 'Privacy policy for Vietnam 3D Map',
+        collection: 'Data Collection',
+        collectionText: 'We do not collect any personal information from users. The website operates entirely on the client side and does not require account registration.',
+        localStorage: 'Local Storage',
+        localStorageText: 'The website uses browser localStorage to save UI preferences (such as panel open/close states). This data is stored only on your device.',
+        cookies: 'Cookies',
+        cookiesText: 'The website does not use cookies to track users.',
+        thirdParty: 'Third-Party Services',
+        thirdPartyText: 'The website may use third-party services such as CDNs to load libraries. These services may have their own privacy policies.',
+        children: 'Children',
+        childrenText: 'This website is suitable for all ages and is especially encouraged for educational purposes.',
+        changes: 'Policy Changes',
+        changesText: 'We may update this privacy policy. Changes will be posted on this page.',
+        contact: 'Contact',
+        contactText: 'If you have questions about the privacy policy, please contact via khuong.dev',
+        lastUpdated: 'Last updated: December 2025',
+      },
     },
   },
 };
