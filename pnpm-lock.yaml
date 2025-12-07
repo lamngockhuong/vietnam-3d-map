@@ -33,7 +33,7 @@ importers:
         specifier: 3.0.4
         version: 3.0.4(@react-three/fiber@9.4.2(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(three@0.181.2))(@types/three@0.181.0)(react@19.2.1)(three@0.181.2)
       '@tanstack/react-virtual':
-        specifier: ^3.13.12
+        specifier: 3.13.12
         version: 3.13.12(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       class-variance-authority:
         specifier: 0.7.1
