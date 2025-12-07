@@ -24,6 +24,9 @@ export async function generateMetadata({
     icons: {
       icon: '/icon.svg',
     },
+    verification: {
+      google: 'XhDoCgldH-4ctJaAhfo3bgJ5qvwjvKXkts0_YYDz1cw',
+    },
   };
 }
 
