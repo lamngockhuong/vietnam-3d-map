@@ -11,7 +11,11 @@
     "format": "biome format --write .",
     "check": "biome check --write .",
     "preprocess": "tsx scripts/preprocess-geojson.ts",
-    "preprocess:wards": "tsx scripts/preprocess-wards.ts"
+    "preprocess:wards": "tsx scripts/preprocess-wards.ts",
+    "fetch-data": "tsx scripts/fetch-data.ts",
+    "merge-data": "tsx scripts/merge-data.ts",
+    "generate-merger-data": "tsx scripts/generate-merger-data.ts",
+    "prepare-data": "tsx scripts/prepare-data.ts"
   },
   "keywords": [
     "vietnam",
