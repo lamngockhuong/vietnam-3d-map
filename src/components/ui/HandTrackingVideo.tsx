@@ -60,8 +60,9 @@ export function HandTrackingVideo({ dict, enabled, onGestureChange }: HandTracki
   const confidencePercent = Math.round(gestureState.confidence * 100);
 
   return (
-    <div
+    <section
       ref={elementRef}
+      aria-label="Hand tracking camera preview"
       className={`fixed w-48 overflow-hidden rounded-xl shadow-xl border border-white/20 bg-black/80 backdrop-blur-sm z-30 ${isDragging ? 'cursor-grabbing' : ''}`}
       style={{
         left: position.x,
@@ -135,6 +136,6 @@ export function HandTrackingVideo({ dict, enabled, onGestureChange }: HandTracki
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

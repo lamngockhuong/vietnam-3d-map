@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Code2, Globe, Hand, Map } from 'lucide-react';
+import { Code2, Globe, Hand, Map as MapIcon } from 'lucide-react';
 import { PageLayout } from '@/components/ui/PageLayout';
 import type { Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const featureIcons = [Map, Globe, Map, Hand, Globe];
+const featureIcons = [MapIcon, Globe, MapIcon, Hand, Globe];
 
 export default async function AboutPage({ params }: PageProps) {
   const { locale } = await params;
@@ -42,7 +42,7 @@ export default async function AboutPage({ params }: PageProps) {
             justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <Map style={{ width: '20px', height: '20px', color: '#eab308' }} />
+            <MapIcon style={{ width: '20px', height: '20px', color: '#eab308' }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'white', margin: 0, marginBottom: '8px' }}>
@@ -76,7 +76,7 @@ export default async function AboutPage({ params }: PageProps) {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {about.featuresText.map((feature, index) => {
-                const Icon = featureIcons[index] || Map;
+                const Icon = featureIcons[index] || MapIcon;
                 return (
                   <div
                     key={index}

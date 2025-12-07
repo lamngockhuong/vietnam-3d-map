@@ -175,9 +175,6 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
     setSearchQuery(query);
   }, []);
 
-  // Ward mode for hiding legend
-  const isWardMode = selectedProvince !== null;
-
   // Show loading until provinces are ready
   if (isLoading || !provinces) {
     return (

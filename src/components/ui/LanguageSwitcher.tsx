@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { type Locale } from '@/i18n/config';
+import type { Locale } from '@/i18n/config';
 import {
   Tooltip,
   TooltipContent,
