@@ -46,6 +46,23 @@ The 3D map uses client-side only rendering due to Three.js WebGL requirements:
 - Route structure: `/[locale]/page.tsx` where locale is `vi` or `en`
 - Dictionary system in `src/i18n/dictionaries.ts` - synchronous dictionary lookup
 - Config in `src/i18n/config.ts` - defines supported locales
+- Province name translations in `src/i18n/province-names.ts` - Vietnamese to English mapping
+
+### Info Pages
+
+- **PageLayout** (`src/components/ui/PageLayout.tsx`) - Shared layout for info pages with nav, footer, decorative backgrounds
+- **About** (`src/app/[locale]/about/page.tsx`) - Project information, features, technology stack
+- **Terms** (`src/app/[locale]/terms/page.tsx`) - Terms of Service
+- **Privacy** (`src/app/[locale]/privacy/page.tsx`) - Privacy Policy
+- All pages support i18n (Vietnamese/English) and are scrollable
+
+### UI State Management
+
+- **useUIState** (`src/hooks/useUIState.ts`) - localStorage-based panel state persistence
+  - First visit: All panels (Sidebar, Legend, Controls) closed by default
+  - Subsequent visits: Restores saved open/close state
+- **useClickOutside** (`src/hooks/useClickOutside.ts`) - Click outside detection for mobile
+  - Auto-closes panels when clicking outside on screens < 640px
 
 ### Data Pipeline
 
