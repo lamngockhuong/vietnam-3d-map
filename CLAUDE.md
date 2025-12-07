@@ -36,10 +36,11 @@ MapWrapper (state owner)
 ├── VietnamMap (3D canvas)
 │   ├── Provinces → onSelect/onDoubleClick callbacks
 │   └── Wards → onSelect callback
+├── HandTrackingVideo (draggable camera preview)
+├── ScreenshotCountdown (3-second countdown overlay)
 ├── Sidebar (UI panel)
 │   ├── ProvinceList → onSelect/onDoubleClick callbacks
 │   └── WardList → onSelect/onBack callbacks
-├── HandTrackingVideo (draggable camera preview)
 ├── Legend (location info panel)
 └── Controls (interaction guide panel)
 ```
@@ -51,6 +52,7 @@ Key state in `MapWrapper`:
 - `selectedWard` - Currently selected ward
 - `sidebarOpen` - Sidebar visibility (controlled by gesture or click)
 - `gestureState` - Hand tracking gesture state from `useHandTracking`
+- `screenshotCountdown` - Countdown timer (3-2-1) before taking screenshot
 
 Selection flow:
 
@@ -126,7 +128,7 @@ preprocess-wards.ts → public/wards/*.json (34 files, ~9.4 MB total)
   - Peace sign (2 fingers) → toggle sidebar
 - Two-hand gestures:
   - Two pointing fingers → pan/move map
-  - Two peace signs → take screenshot
+  - Two peace signs → start 3-second countdown, then screenshot (2x resolution)
   - Two open palms → tilt map
   - Two pinches → two-hand zoom
   - Two fists → reset view
