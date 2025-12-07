@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Inter } from 'next/font/google';
 import '../globals.css';
 import { type Locale, locales } from '@/i18n/config';
@@ -7,6 +8,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 const inter = Inter({ subsets: ['latin', 'vietnamese'] });
 
 const baseUrl = 'https://vietmap.vercel.app';
+const GA_MEASUREMENT_ID = 'G-WZQ1V6BVQM';
 
 export async function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -157,6 +159,24 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <head>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
+        <Script
+          data-goatcounter="https://vietmap.goatcounter.com/count"
+          async
+          src="//gc.zgo.at/count.js"
+          strategy="afterInteractive"
+        />
         <JsonLd locale={locale} />
       </head>
       <body className={`${inter.className} bg-vietnam-ocean`}>{children}</body>
