@@ -6,6 +6,7 @@ import type { VietnamMapRef } from '@/components/map/VietnamMap';
 import { Controls } from '@/components/ui/Controls';
 import { HandTrackingVideo } from '@/components/ui/HandTrackingVideo';
 import { Legend } from '@/components/ui/Legend';
+import { ScreenshotCountdown } from '@/components/ui/ScreenshotCountdown';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { loadProvinces, type ProvinceData } from '@/data/provinces-data';
 import { loadWardsForProvince, type WardData } from '@/data/wards-data';
@@ -55,6 +56,10 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
   const [loadingWards, setLoadingWards] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Screenshot countdown state
+  const [screenshotCountdown, setScreenshotCountdown] = useState<number | null>(null);
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const mapRef = useRef<VietnamMapRef>(null);
 
   // Sync sidebar ref with state
@@ -75,18 +80,41 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
       });
   }, []);
 
-  // Screenshot function - capture the 3D canvas directly
+  // Screenshot function - capture the 3D canvas with high resolution
   const takeScreenshot = useCallback(() => {
     try {
       // Find the Three.js canvas element
-      const canvas = document.querySelector('canvas');
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement;
       if (!canvas) {
         console.error('Canvas not found');
         return;
       }
 
-      // Get the canvas data URL
-      const dataUrl = canvas.toDataURL('image/png');
+      // Scale factor for higher resolution (2x = 2x width and height)
+      const scale = 2;
+      const width = canvas.width * scale;
+      const height = canvas.height * scale;
+
+      // Create high-resolution canvas
+      const hiResCanvas = document.createElement('canvas');
+      hiResCanvas.width = width;
+      hiResCanvas.height = height;
+
+      const ctx = hiResCanvas.getContext('2d');
+      if (!ctx) {
+        console.error('Could not get 2D context');
+        return;
+      }
+
+      // Enable high-quality image scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Draw the original canvas scaled up
+      ctx.drawImage(canvas, 0, 0, width, height);
+
+      // Get the high-resolution data URL
+      const dataUrl = hiResCanvas.toDataURL('image/png', 1.0);
 
       // Create download link
       const link = document.createElement('a');
@@ -98,6 +126,46 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
     }
   }, []);
 
+  // Start screenshot countdown
+  const startScreenshotCountdown = useCallback(() => {
+    // Don't start if already counting down
+    if (screenshotCountdown !== null) return;
+
+    setScreenshotCountdown(3);
+  }, [screenshotCountdown]);
+
+  // Cancel screenshot countdown
+  const cancelScreenshotCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setScreenshotCountdown(null);
+  }, []);
+
+  // Handle countdown timer
+  useEffect(() => {
+    if (screenshotCountdown === null) return;
+
+    if (screenshotCountdown === 0) {
+      // Take screenshot and reset
+      takeScreenshot();
+      setScreenshotCountdown(null);
+      return;
+    }
+
+    // Start countdown interval
+    countdownTimerRef.current = setTimeout(() => {
+      setScreenshotCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => {
+      if (countdownTimerRef.current) {
+        clearTimeout(countdownTimerRef.current);
+      }
+    };
+  }, [screenshotCountdown, takeScreenshot]);
+
   const handleGestureChange = useCallback((gesture: HandGestureState) => {
     setGestureState(gesture);
 
@@ -107,12 +175,12 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
       setSidebarOpen(!sidebarOpenRef.current);
     }
 
-    // Handle screenshot action
+    // Handle screenshot action - start countdown instead of immediate capture
     if (gesture.shouldScreenshot) {
-      console.log('Screenshot triggered');
-      takeScreenshot();
+      console.log('Screenshot countdown triggered');
+      startScreenshotCountdown();
     }
-  }, [setSidebarOpen, takeScreenshot]);
+  }, [setSidebarOpen, startScreenshotCountdown]);
 
   const toggleHandTracking = useCallback(() => {
     setHandTrackingEnabled((prev) => !prev);
@@ -214,6 +282,13 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
         dict={dict}
         enabled={handTrackingEnabled}
         onGestureChange={handleGestureChange}
+      />
+
+      {/* Screenshot Countdown Overlay */}
+      <ScreenshotCountdown
+        dict={dict}
+        countdown={screenshotCountdown}
+        onCancel={cancelScreenshotCountdown}
       />
 
       {/* Sidebar Panel */}

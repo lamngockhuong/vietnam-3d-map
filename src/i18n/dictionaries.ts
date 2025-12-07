@@ -73,6 +73,13 @@ export interface Dictionary {
     active: string;
     error: string;
   };
+  // Screenshot
+  screenshot: {
+    countdown: string;
+    preparing: string;
+    captured: string;
+    cancelled: string;
+  };
   // Provinces
   provinces: {
     type: string;
@@ -225,6 +232,12 @@ const dictionaries: Record<Locale, Dictionary> = {
       active: 'Đang hoạt động',
       error: 'Lỗi',
     },
+    screenshot: {
+      countdown: 'Chụp màn hình sau',
+      preparing: 'Chuẩn bị chụp...',
+      captured: 'Đã chụp!',
+      cancelled: 'Đã hủy',
+    },
     provinces: {
       type: 'Loại',
       population: 'Dân số',
@@ -375,6 +388,12 @@ const dictionaries: Record<Locale, Dictionary> = {
       loading: 'Loading...',
       active: 'Active',
       error: 'Error',
+    },
+    screenshot: {
+      countdown: 'Screenshot in',
+      preparing: 'Preparing...',
+      captured: 'Captured!',
+      cancelled: 'Cancelled',
     },
     provinces: {
       type: 'Type',
