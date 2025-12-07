@@ -8,7 +8,7 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 
 ### Primary Goals
 
-1. **Accurate Geographic Representation** - Visualize all 63 Vietnamese provinces/cities with proper boundaries and categorization
+1. **Accurate Geographic Representation** - Visualize all 34 Vietnamese provinces/cities (2025 administrative reorganization) with proper boundaries and categorization
 2. **Interactive Exploration** - Provide intuitive controls for desktop, mobile, and gesture-based interaction
 3. **Internationalization** - Support Vietnamese and English languages with seamless locale switching
 4. **Territorial Clarity** - Display disputed island territories (Hoàng Sa/Paracel and Trường Sa/Spratly) appropriately
@@ -17,9 +17,11 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 ### Secondary Goals
 
 1. **Hand Gesture Control** - Optional MediaPipe Hands integration for natural gesture-based navigation
-2. **Educational Value** - Display province-level demographic data (population, area, density)
-3. **Visual Fidelity** - Realistic terrain visualization with ambient ocean animation
-4. **Accessibility** - Responsive design working across devices and input methods
+2. **Ward-Level Detail** - Drill down to 3,321 wards/communes within each province
+3. **Educational Value** - Display province/ward-level demographic data (population, area, density)
+4. **Visual Fidelity** - Realistic terrain visualization with ambient ocean animation
+5. **Screenshot Capture** - High-resolution (2x) screenshot with 3-second countdown
+6. **Accessibility** - Responsive design working across devices and input methods
 
 ## Target Users
 
@@ -33,13 +35,15 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 
 ### Map Visualization
 
-- **63 Provinces/Cities** - Color-coded by type (capital, city, highland, coastal, default)
-- **Terrain Rendering** - Extruded 3D polygons representing province boundaries
+- **34 Provinces/Cities** - Color-coded by type (capital, city, highland, coastal, default) - 2025 administrative reorganization
+- **3,321 Wards/Communes** - Lazy-loaded ward boundaries when drilling into a province
+- **Terrain Rendering** - Extruded 3D polygons representing province/ward boundaries
 - **Ocean Animation** - Shader-based water with caustics and wave effects
 - **Island Territories** - Hoàng Sa and Trường Sa archipelagos with sovereignty visualization
 - **Sky Dome** - Gradient background for atmospheric effect
-- **Province Labels** - Billboard text labels that face camera
-- **Hover Tooltips** - Province info on mouse hover/touch
+- **Province/Ward Labels** - Billboard text labels that face camera
+- **Hover Tooltips** - Province/ward info on mouse hover/touch
+- **Screenshot** - High-resolution capture (2x) with 3-second countdown overlay
 
 ### Interaction Methods
 
@@ -47,11 +51,8 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 - **Touch/Trackpad** - Gesture support for pinch zoom and two-finger rotation
 - **Keyboard** - Arrow keys for rotation, +/- for zoom, R to reset
 - **Hand Gestures** - Optional MediaPipe Hands integration:
-  - Palm open = rotate
-  - Pinch gesture = zoom
-  - Two hands = combined rotate + zoom
-  - Fist = reset view
-  - Pointing = directional control
+  - Single hand: Palm open = rotate, Pinch = zoom, Fist = reset, Pointing = fine rotation, Peace sign = toggle sidebar
+  - Two hands: Two pointing = pan, Two peace signs = screenshot (3s countdown), Two palms = tilt, Two pinches = zoom, Two fists = reset
 
 ### Internationalization (i18n)
 
@@ -64,23 +65,26 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 
 - **Client-Side Rendering** - Full WebGL rendering in browser for responsiveness
 - **Data Preprocessing** - Douglas-Peucker simplification reduces GeoJSON by 97.6%
-- **Efficient Loading** - ~800 KB preprocessed province data (vs 32 MB raw)
+- **Efficient Loading** - ~570 KB preprocessed province data (vs 32 MB raw), ~9.4 MB ward data (lazy-loaded per province)
 - **Post-Processing Effects** - Bloom effect via Three.js post-processing
 - **5-Light System** - Directional, ambient, and spot lights for realistic illumination
-- **Raycasting** - Efficient hover detection on 63 province meshes
+- **Raycasting** - Efficient hover detection on 34 province meshes
+- **Virtualized Lists** - TanStack Virtual for smooth scrolling through 3,321 wards
 
 ## Technical Requirements
 
 ### Functional Requirements
 
-- [ ] Render 63 Vietnamese provinces with accurate boundaries
-- [ ] Support mouse, touch, keyboard, and hand gesture controls
-- [ ] Provide simultaneous Vietnamese and English interfaces
-- [ ] Display province tooltips with administrative/demographic data
-- [ ] Show island territories (Hoàng Sa, Trường Sa) with visual distinction
-- [ ] Implement zoom-to-cursor and camera animation
-- [ ] Handle real-time hand tracking (optional feature flag)
-- [ ] Responsive design for desktop (1920x1080) and mobile (375x667)
+- [x] Render 34 Vietnamese provinces with accurate boundaries (2025 reorganization)
+- [x] Support ward-level drill-down with 3,321 wards/communes
+- [x] Support mouse, touch, keyboard, and hand gesture controls
+- [x] Provide simultaneous Vietnamese and English interfaces
+- [x] Display province/ward tooltips with administrative/demographic data
+- [x] Show island territories (Hoàng Sa, Trường Sa) with visual distinction
+- [x] Implement zoom-to-cursor and camera animation
+- [x] Handle real-time hand tracking (optional feature flag)
+- [x] Screenshot capture with 3-second countdown and 2x resolution
+- [x] Responsive design for desktop (1920x1080) and mobile (375x667)
 
 ### Non-Functional Requirements
 
@@ -109,13 +113,13 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 - **Internationalization** - Custom dictionary-based system (no i18n library)
 - **Build Tool** - Turbopack (Next.js 16 default)
 - **Package Manager** - pnpm 10.21.0
-- **Linting** - ESLint
+- **Linting** - Biome
 
 ## Acceptance Criteria
 
 ### MVP (Minimum Viable Product)
 
-- [x] Render all 63 provinces with distinct colors
+- [x] Render all 34 provinces with distinct colors (2025 reorganization)
 - [x] Support mouse and touch controls
 - [x] Implement hover detection and province info display
 - [x] Support Vietnamese and English languages
@@ -124,8 +128,10 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 
 ### Phase 2 Enhancements
 
-- [ ] Hand gesture control via MediaPipe
-- [ ] Island territory visualization improvements
+- [x] Hand gesture control via MediaPipe (single & two-hand gestures)
+- [x] Ward-level drill-down (3,321 wards)
+- [x] Screenshot capture with countdown
+- [x] Island territory visualization improvements
 - [ ] Advanced province filtering (by type, population range)
 - [ ] History of province boundary changes
 - [ ] Export/share map views
@@ -169,9 +175,9 @@ An interactive 3D web application that enables users to explore Vietnam's geogra
 
 ```json
 {
-  "tsx": "4.19.2",
-  "eslint": "9.x",
-  "postcss": "8.4.x"
+  "@biomejs/biome": "2.3.8",
+  "tsx": "4.21.0",
+  "postcss": "8.5.6"
 }
 ```
 
