@@ -32,3 +32,7 @@ npm-debug.log*
 
 # Large data files (use Git LFS if needed)
 data/vietnam-wards.geojson
+data/vietnam-provinces-merged.geojson
+
+# TypeScript build info
+tsconfig.tsbuildinfo

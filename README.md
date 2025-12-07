@@ -1,6 +1,6 @@
 # Vietnam 3D Map
 
-Interactive 3D map of Vietnam built with Next.js, React Three Fiber, and Three.js. Explore 63 provinces with terrain visualization, animated ocean, island territories, and hand gesture controls.
+Interactive 3D map of Vietnam built with Next.js, React Three Fiber, and Three.js. Explore 34 provinces (2025 administrative reorganization) and 3,321 wards with terrain visualization, animated ocean, island territories, and hand gesture controls.
 
 ## Quick Start
 
@@ -42,7 +42,8 @@ pnpm preprocess:wards
 |-------|--------|
 | Mouse drag | Rotate map |
 | Scroll wheel | Zoom in/out |
-| Click province | View wards |
+| Click province | Highlight province |
+| Double-click province | View wards |
 | Back button | Return to provinces |
 | Touch drag | Rotate (mobile) |
 | Two-finger drag | Rotate (trackpad) |
@@ -207,7 +208,7 @@ pnpm preprocess:wards
 
 #### Data Flow
 
-```
+```text
 sapnhap.bando.com.vn API
         ↓
 data/provinces-metadata.json (34 provinces, merger info)
