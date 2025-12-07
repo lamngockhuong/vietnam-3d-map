@@ -26,8 +26,8 @@ pnpm preprocess:wards
 
 ## Features
 
-- **3D Province Map**: All 63 Vietnamese provinces with accurate boundaries
-- **Ward-Level Detail**: Click any province to view its wards/communes (3,321 wards across 34 provinces)
+- **3D Province Map**: All 34 Vietnamese provinces (2025 administrative reorganization) with accurate boundaries
+- **Ward-Level Detail**: Click any province to view its wards/communes (3,321 wards)
 - **Animated Ocean**: GLSL shader-based water with caustics and wave effects
 - **Island Territories**: Hoàng Sa (Paracel) and Trường Sa (Spratly) with markers
 - **Interactive Controls**: Mouse drag, scroll zoom, touch gestures, keyboard shortcuts
@@ -62,7 +62,7 @@ src/
 ├── components/
 │   ├── map/                    # 3D map components
 │   │   ├── VietnamMap.tsx      # Canvas & scene setup
-│   │   ├── Provinces.tsx       # 63 province geometries
+│   │   ├── Provinces.tsx       # 34 province geometries
 │   │   ├── Wards.tsx           # Ward-level geometries (lazy-loaded)
 │   │   ├── Ocean.tsx           # Animated water shader
 │   │   ├── CameraController.tsx # Interaction handling
@@ -79,15 +79,23 @@ src/
 ├── shaders/                    # GLSL shader files
 ├── types/                      # TypeScript definitions
 └── utils/                      # Helper functions
+scripts/
+├── fetch-data.ts               # Fetch metadata from API
+├── merge-data.ts               # Merge metadata with GeoJSON
+├── prepare-data.ts             # Master data pipeline script
+├── preprocess-geojson.ts       # Province data preprocessing
+└── preprocess-wards.ts         # Ward data preprocessing
 public/
-├── provinces.json              # Preprocessed province data (~800 KB)
+├── provinces.json              # Preprocessed province data (~570 KB)
 └── wards/                      # Ward data by province (~9.4 MB total)
     ├── 01.json                 # Hà Nội wards
     ├── 79.json                 # TP. Hồ Chí Minh wards
     └── ...                     # 34 province ward files
 data/
 ├── vietnam-provinces.geojson   # Source GeoJSON (32 MB, not in build)
-└── vietnam-wards.geojson       # Source GeoJSON (276 MB, git ignored)
+├── vietnam-wards.geojson       # Source GeoJSON (276 MB, git ignored)
+├── provinces-metadata.json     # API metadata (from fetch-data.ts)
+└── wards-metadata/             # Ward metadata per province
 docs/
 ├── project-overview-pdr.md     # Vision, goals, requirements
 ├── system-architecture.md      # Architecture & pipelines
@@ -127,7 +135,7 @@ See `/docs` directory for comprehensive documentation:
 |------|---------|
 | `src/components/MapWrapper.tsx` | Main wrapper with province preloading |
 | `src/components/map/VietnamMap.tsx` | R3F Canvas + scene setup |
-| `src/components/map/Provinces.tsx` | 63 ExtrudeGeometry meshes with click handler |
+| `src/components/map/Provinces.tsx` | 34 ExtrudeGeometry meshes with click handler |
 | `src/components/map/Wards.tsx` | Ward geometries (lazy-loaded on click) |
 | `src/components/map/CameraController.tsx` | Interaction & camera animation |
 | `src/data/provinces-data.ts` | Province types and loader |
@@ -164,20 +172,65 @@ pnpm format            # Run Biome formatter
 pnpm check             # Run both lint and format
 ```
 
-### Data Updates
+### Data Pipeline
 
-If you update `data/vietnam-provinces.geojson`:
+The project includes automated scripts to fetch and prepare map data from official sources.
+
+#### Complete Data Preparation
+
+```bash
+# Run complete pipeline (fetch → merge → preprocess)
+pnpm prepare-data
+
+# Force fresh data from API
+pnpm prepare-data --fetch
+
+# Skip ward preprocessing (faster)
+pnpm prepare-data --skip-wards
+```
+
+#### Individual Steps
+
+```bash
+# Step 1: Fetch metadata from sapnhap.bando.com.vn API
+pnpm fetch-data
+
+# Step 2: Merge API metadata with GeoJSON boundaries
+pnpm merge-data
+
+# Step 3: Preprocess province boundaries
+pnpm preprocess
+
+# Step 4: Preprocess ward boundaries
+pnpm preprocess:wards
+```
+
+#### Data Flow
+
+```
+sapnhap.bando.com.vn API
+        ↓
+data/provinces-metadata.json (34 provinces, merger info)
+data/wards-metadata/*.json (3,321 wards)
+        ↓
+data/vietnam-provinces.geojson + metadata
+        ↓
+public/provinces.json (~570 KB, 97.7% reduction)
+public/wards/*.json (~9.4 MB total)
+```
+
+#### Manual Data Updates
+
+If you only update `data/vietnam-provinces.geojson`:
 
 ```bash
 pnpm preprocess        # Regenerate public/provinces.json
-pnpm build             # Rebuild for production
 ```
 
-If you update `data/vietnam-wards.geojson`:
+If you only update `data/vietnam-wards.geojson`:
 
 ```bash
 pnpm preprocess:wards  # Regenerate public/wards/*.json
-pnpm build             # Rebuild for production
 ```
 
 ## Known Constraints

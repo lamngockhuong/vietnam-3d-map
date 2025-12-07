@@ -1,0 +1,206 @@
+[
+  {
+    "id": 1,
+    "name": "Thủ đô Hà Nội",
+    "mahc": 1,
+    "wardCount": 126
+  },
+  {
+    "id": 2,
+    "name": "tỉnh Cao Bằng",
+    "mahc": 7,
+    "wardCount": 99
+  },
+  {
+    "id": 3,
+    "name": "tỉnh Tuyên Quang",
+    "mahc": 8,
+    "wardCount": 54
+  },
+  {
+    "id": 4,
+    "name": "tỉnh Lào Cai",
+    "mahc": 9,
+    "wardCount": 114
+  },
+  {
+    "id": 5,
+    "name": "tỉnh Điện Biên",
+    "mahc": 13,
+    "wardCount": 104
+  },
+  {
+    "id": 6,
+    "name": "tỉnh Lai Châu",
+    "mahc": 14,
+    "wardCount": 129
+  },
+  {
+    "id": 7,
+    "name": "tỉnh Sơn La",
+    "mahc": 15,
+    "wardCount": 56
+  },
+  {
+    "id": 8,
+    "name": "tỉnh Thái Nguyên",
+    "mahc": 10,
+    "wardCount": 124
+  },
+  {
+    "id": 9,
+    "name": "tỉnh Lạng Sơn",
+    "mahc": 11,
+    "wardCount": 99
+  },
+  {
+    "id": 10,
+    "name": "tỉnh Quảng Ninh",
+    "mahc": 3,
+    "wardCount": 92
+  },
+  {
+    "id": 11,
+    "name": "tỉnh Phú Thọ",
+    "mahc": 12,
+    "wardCount": 65
+  },
+  {
+    "id": 12,
+    "name": "tỉnh Bắc Ninh",
+    "mahc": 2,
+    "wardCount": 148
+  },
+  {
+    "id": 13,
+    "name": "thành phố Hải Phòng",
+    "mahc": 4,
+    "wardCount": 45
+  },
+  {
+    "id": 14,
+    "name": "tỉnh Hưng Yên",
+    "mahc": 5,
+    "wardCount": 38
+  },
+  {
+    "id": 15,
+    "name": "tỉnh Ninh Bình",
+    "mahc": 6,
+    "wardCount": 75
+  },
+  {
+    "id": 16,
+    "name": "tỉnh Thanh Hóa",
+    "mahc": 16,
+    "wardCount": 166
+  },
+  {
+    "id": 17,
+    "name": "tỉnh Nghệ An",
+    "mahc": 17,
+    "wardCount": 130
+  },
+  {
+    "id": 18,
+    "name": "tỉnh Hà Tĩnh",
+    "mahc": 18,
+    "wardCount": 69
+  },
+  {
+    "id": 19,
+    "name": "tỉnh Quảng Trị",
+    "mahc": 19,
+    "wardCount": 78
+  },
+  {
+    "id": 20,
+    "name": "thành phố Huế",
+    "mahc": 20,
+    "wardCount": 40
+  },
+  {
+    "id": 21,
+    "name": "thành phố Đà Nẵng",
+    "mahc": 21,
+    "wardCount": 94
+  },
+  {
+    "id": 22,
+    "name": "tỉnh Quảng Ngãi",
+    "mahc": 22,
+    "wardCount": 96
+  },
+  {
+    "id": 23,
+    "name": "tỉnh Khánh Hòa",
+    "mahc": 23,
+    "wardCount": 65
+  },
+  {
+    "id": 24,
+    "name": "tỉnh Gia Lai",
+    "mahc": 24,
+    "wardCount": 135
+  },
+  {
+    "id": 25,
+    "name": "tỉnh Đắk Lắk",
+    "mahc": 25,
+    "wardCount": 102
+  },
+  {
+    "id": 26,
+    "name": "tỉnh Lâm Đồng",
+    "mahc": 26,
+    "wardCount": 124
+  },
+  {
+    "id": 27,
+    "name": "tỉnh Tây Ninh",
+    "mahc": 27,
+    "wardCount": 96
+  },
+  {
+    "id": 28,
+    "name": "tỉnh Đồng Nai",
+    "mahc": 28,
+    "wardCount": 95
+  },
+  {
+    "id": 29,
+    "name": "thành phố Hồ Chí Minh",
+    "mahc": 29,
+    "wardCount": 168
+  },
+  {
+    "id": 30,
+    "name": "tỉnh Vĩnh Long",
+    "mahc": 30,
+    "wardCount": 124
+  },
+  {
+    "id": 31,
+    "name": "tỉnh Đồng Tháp",
+    "mahc": 31,
+    "wardCount": 102
+  },
+  {
+    "id": 32,
+    "name": "tỉnh An Giang",
+    "mahc": 32,
+    "wardCount": 102
+  },
+  {
+    "id": 33,
+    "name": "thành phố Cần Thơ",
+    "mahc": 33,
+    "wardCount": 103
+  },
+  {
+    "id": 34,
+    "name": "tỉnh Cà Mau",
+    "mahc": 34,
+    "wardCount": 64
+  }
+]

@@ -14,6 +14,11 @@ pnpm build            # Production build
 pnpm lint             # Biome linter
 pnpm format           # Biome formatter
 pnpm check            # Biome lint + format
+
+# Data Pipeline
+pnpm prepare-data     # Run complete pipeline (fetch → merge → preprocess)
+pnpm fetch-data       # Fetch metadata from sapnhap.bando.com.vn API
+pnpm merge-data       # Merge API metadata with GeoJSON boundaries
 pnpm preprocess       # Regenerate province data from GeoJSON
 pnpm preprocess:wards # Regenerate ward data from GeoJSON
 ```
@@ -26,7 +31,7 @@ The 3D map uses client-side only rendering due to Three.js WebGL requirements:
 
 1. **MapWrapper** (`src/components/MapWrapper.tsx`) - Client Component that dynamically imports VietnamMap with `ssr: false`, manages lifted state for province/ward selection
 2. **VietnamMap** (`src/components/map/VietnamMap.tsx`) - React Three Fiber Canvas with scene setup, lighting, and post-processing
-3. **Provinces** (`src/components/map/Provinces.tsx`) - Renders 63 provinces using Three.js ExtrudeGeometry with raycasting for hover/click/double-click detection, flickering outline effect for selected province
+3. **Provinces** (`src/components/map/Provinces.tsx`) - Renders 34 provinces (2025 administrative reorganization) using Three.js ExtrudeGeometry with raycasting for hover/click/double-click detection, flickering outline effect for selected province
 4. **Wards** (`src/components/map/Wards.tsx`) - Renders ward-level boundaries when a province is double-clicked (lazy-loaded), flickering outline effect for selected ward
 5. **Ocean** (`src/components/map/Ocean.tsx`) - Custom GLSL shader for animated water with depth gradient, caustics, and specular highlights
 6. **CameraController** (`src/components/map/CameraController.tsx`) - OrbitControls with custom zoom-to-cursor, trackpad gestures, hand gesture integration, and `zoomToLocation` method for programmatic camera movement
@@ -66,20 +71,41 @@ The 3D map uses client-side only rendering due to Three.js WebGL requirements:
 
 ### Data Pipeline
 
-**Province Data:**
+The project includes automated scripts to fetch and prepare map data:
 
-1. Source: `data/vietnam-provinces.geojson` (raw GeoJSON, 32 MB)
-2. Preprocessing: `scripts/preprocess-geojson.ts` applies Douglas-Peucker simplification
-3. Output: `public/provinces.json` (~800 KB) + `src/data/provinces-data.ts` (types)
+**Complete Pipeline:** `pnpm prepare-data` (6 steps)
 
-**Ward Data:**
+1. **Fetch metadata** (`scripts/fetch-data.ts`)
+   - Source: `sapnhap.bando.com.vn` API (2025 administrative reorganization data)
+   - Output: `data/provinces-metadata.json`, `data/wards-metadata/*.json`
+   - Contains: 34 merged provinces, 3,321 wards, area/population/merger info
 
-1. Source: `data/vietnam-wards.geojson` (raw GeoJSON, 276 MB - git ignored)
-2. Preprocessing: `scripts/preprocess-wards.ts` groups by province, applies simplification
-3. Output: `public/wards/{provinceId}.json` (34 files, ~9.4 MB total)
-4. Loaded on-demand when user clicks a province
+2. **Generate merger data** (`scripts/generate-merger-data.ts`)
+   - Generates TypeScript file with province merger info for Legend
+   - Output: `src/data/merger-data.ts`
 
-The preprocessing scripts reduce polygon complexity (93-97% reduction) while maintaining visual accuracy.
+3. **Copy ward metadata** (inline in prepare-data.ts)
+   - Copies ward metadata to public folder for runtime loading
+   - Output: `public/wards-metadata/*.json`
+
+4. **Merge data** (`scripts/merge-data.ts`)
+   - Combines API metadata with GeoJSON boundaries
+   - Output: `data/vietnam-provinces-merged.geojson`
+
+5. **Preprocess provinces** (`scripts/preprocess-geojson.ts`)
+   - Source: `data/vietnam-provinces.geojson` (raw GeoJSON, 32 MB)
+   - Douglas-Peucker simplification (97.7% reduction)
+   - Output: `public/provinces.json` (~570 KB) + `src/data/provinces-data.ts` (types)
+
+6. **Preprocess wards** (`scripts/preprocess-wards.ts`)
+   - Source: `data/vietnam-wards.geojson` (raw GeoJSON, 276 MB - git ignored)
+   - Groups by province, applies simplification
+   - Output: `public/wards/{provinceId}.json` (34 files, ~9.4 MB total)
+   - Loaded on-demand when user clicks a province
+
+**Data Sources:**
+- GeoJSON boundaries: Local files in `data/` directory
+- Province/ward metadata: `sapnhap.bando.com.vn` API (Vietnam 2025 administrative data)
 
 ### Hand Tracking System
 

@@ -31,6 +31,17 @@ export interface Dictionary {
     coastalIslands: string;
     capital: string;
     majorCities: string;
+    // Location info section
+    locationInfo: string;
+    selectLocation: string;
+    // Merger info
+    mergerInfo: string;
+    mergedFrom: string;
+    mergedYear: string;
+    adminCenter: string;
+    adminUnits: string;
+    noMergerInfo: string;
+    notMerged: string;
   };
   // Controls
   controls: {
@@ -173,6 +184,15 @@ const dictionaries: Record<Locale, Dictionary> = {
       coastalIslands: 'Đảo ven biển',
       capital: 'Thủ đô',
       majorCities: 'Thành phố lớn',
+      locationInfo: 'THÔNG TIN VỊ TRÍ',
+      selectLocation: 'Nhấn vào tỉnh/thành trên bản đồ để xem thông tin',
+      mergerInfo: 'THÔNG TIN SÁT NHẬP',
+      mergedFrom: 'Trước sát nhập',
+      mergedYear: 'Năm 2025',
+      adminCenter: 'Trung tâm HC',
+      adminUnits: 'Đơn vị HC',
+      noMergerInfo: 'Không có thông tin sát nhập',
+      notMerged: 'Không sát nhập',
     },
     controls: {
       title: 'ĐIỀU KHIỂN',
@@ -312,6 +332,15 @@ const dictionaries: Record<Locale, Dictionary> = {
       coastalIslands: 'Coastal Islands',
       capital: 'Capital',
       majorCities: 'Major Cities',
+      locationInfo: 'LOCATION INFO',
+      selectLocation: 'Click a province/district on the map to view info',
+      mergerInfo: 'MERGER INFO',
+      mergedFrom: 'Before merger',
+      mergedYear: 'Year 2025',
+      adminCenter: 'Admin center',
+      adminUnits: 'Admin units',
+      noMergerInfo: 'No merger information',
+      notMerged: 'Not merged',
     },
     controls: {
       title: 'CONTROLS',

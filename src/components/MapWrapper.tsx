@@ -193,12 +193,15 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
         />
       </div>
 
-      {/* Legend Panel - hidden in ward mode */}
-      {!isWardMode && (
-        <div className="fixed top-20 sm:top-28 left-3 sm:left-8 z-10 hidden sm:block">
-          <Legend dict={dict} />
-        </div>
-      )}
+      {/* Legend Panel */}
+      <div className="fixed top-20 sm:top-28 left-3 sm:left-8 z-10 hidden sm:block">
+        <Legend
+          dict={dict}
+          locale={locale}
+          highlightedProvince={highlightedProvince}
+          selectedWard={selectedWard}
+        />
+      </div>
 
       {/* Controls Panel */}
       <div className="fixed bottom-3 sm:bottom-8 left-3 sm:left-8 z-10">
