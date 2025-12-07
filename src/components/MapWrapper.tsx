@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/ui/Sidebar';
 import { loadProvinces, type ProvinceData } from '@/data/provinces-data';
 import { loadWardsForProvince, type WardData } from '@/data/wards-data';
 import type { HandGestureState } from '@/hooks/useHandTracking';
+import { useUIState } from '@/hooks/useUIState';
 import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 
@@ -41,6 +42,10 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
   const [gestureState, setGestureState] = useState<HandGestureState | null>(null);
   const [provinces, setProvinces] = useState<ProvinceData[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useUIState('sidebarOpen');
+
+  // Use ref to track sidebar state for gesture handler to avoid infinite loops
+  const sidebarOpenRef = useRef(sidebarOpen);
 
   // Lifted state for controlled selection
   const [highlightedProvince, setHighlightedProvince] = useState<ProvinceData | null>(null);
@@ -51,6 +56,11 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const mapRef = useRef<VietnamMapRef>(null);
+
+  // Sync sidebar ref with state
+  useEffect(() => {
+    sidebarOpenRef.current = sidebarOpen;
+  }, [sidebarOpen]);
 
   // Preload provinces data at wrapper level
   useEffect(() => {
@@ -65,9 +75,44 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
       });
   }, []);
 
+  // Screenshot function - capture the 3D canvas directly
+  const takeScreenshot = useCallback(() => {
+    try {
+      // Find the Three.js canvas element
+      const canvas = document.querySelector('canvas');
+      if (!canvas) {
+        console.error('Canvas not found');
+        return;
+      }
+
+      // Get the canvas data URL
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `vietnam-3d-map-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Screenshot failed:', error);
+    }
+  }, []);
+
   const handleGestureChange = useCallback((gesture: HandGestureState) => {
     setGestureState(gesture);
-  }, []);
+
+    // Handle toggle sidebar action (use ref to avoid infinite loop)
+    if (gesture.shouldToggleSidebar) {
+      console.log('Toggle sidebar triggered, current state:', sidebarOpenRef.current);
+      setSidebarOpen(!sidebarOpenRef.current);
+    }
+
+    // Handle screenshot action
+    if (gesture.shouldScreenshot) {
+      console.log('Screenshot triggered');
+      takeScreenshot();
+    }
+  }, [setSidebarOpen, takeScreenshot]);
 
   const toggleHandTracking = useCallback(() => {
     setHandTrackingEnabled((prev) => !prev);
@@ -190,6 +235,8 @@ export function MapWrapper({ dict, locale }: MapWrapperProps) {
           onProvinceDoubleClick={handleProvinceSelect}
           onWardSelect={handleWardSelect}
           onBackToProvinces={handleBackToProvinces}
+          isOpen={sidebarOpen}
+          onOpenChange={setSidebarOpen}
         />
       </div>
 

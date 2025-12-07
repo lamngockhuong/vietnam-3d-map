@@ -97,11 +97,12 @@ vietnam-3d-map/
 │   │   │   │                         # - Loading animation
 │   │   │   │                         # - Progress indicator (optional)
 │   │   │   │
-│   │   │   ├── HandTrackingVideo.tsx │ Camera feed visualization
-│   │   │   │                         # - Live camera stream
-│   │   │   │                         # - Hand landmarks overlay
-│   │   │   │                         # - Toggle button
-│   │   │   │                         # - Permission request handling
+│   │   │   ├── HandTrackingVideo.tsx # Camera feed visualization
+│   │   │   │                         # - Live camera stream (320x240)
+│   │   │   │                         # - Hand landmarks overlay (canvas)
+│   │   │   │                         # - Gesture indicator with confidence bar
+│   │   │   │                         # - Draggable window (useDraggable hook)
+│   │   │   │                         # - Position persisted to localStorage
 │   │   │   │
 │   │   │   ├── Button.tsx           # Reusable button component
 │   │   │   │                         # - Variant: primary, secondary, ghost
@@ -135,7 +136,17 @@ vietnam-3d-map/
 │   │   │
 │   │   ├── useHandTracking.ts       # MediaPipe Hands integration
 │   │   │                             # - Returns: HandGestureState
+│   │   │                             # - Single-hand: palm, pinch, fist, pointing, peace
+│   │   │                             # - Two-hand: pan, zoom, tilt, screenshot, reset
 │   │   │                             # - Handles permissions, lifecycle
+│   │   │
+│   │   ├── useDraggable.ts          # Draggable element hook
+│   │   │                             # - Mouse + touch support
+│   │   │                             # - Position persistence (localStorage)
+│   │   │                             # - Viewport constraints
+│   │   │
+│   │   ├── useDebounce.ts           # Debounce values
+│   │   │                             # - Delays rapid updates
 │   │   │
 │   │   ├── useTooltip.ts            # Tooltip state management
 │   │   │                             # - Show/hide, content, position

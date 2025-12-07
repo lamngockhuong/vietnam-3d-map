@@ -12,6 +12,9 @@ import {
   Gamepad2,
   X,
   Smartphone,
+  Camera,
+  PanelLeft,
+  Pointer,
 } from 'lucide-react';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { Button } from '@/components/ui/button';
@@ -136,6 +139,9 @@ export function Controls({ dict, onResetCamera }: ControlsProps) {
                 <ControlItem icon={<Hand className="size-4" />} text={dict.controls.openPalm} />
                 <ControlItem icon={<Minimize2 className="size-4" />} text={dict.controls.pinch} />
                 <ControlItem icon={<FistIcon />} text={dict.controls.fist} />
+                <ControlItem icon={<PeaceIcon />} text={dict.controls.peace} />
+                <ControlItem icon={<Pointer className="size-4" />} text={dict.controls.pointing} />
+                <ControlItem icon={<Camera className="size-4" />} text={dict.controls.twoHandPeace} />
               </ControlSection>
 
               {/* Reset Button */}
@@ -268,6 +274,23 @@ function FistIcon() {
       strokeWidth={1.5}
     >
       <path d="M12 8c0-2.21 1.79-4 4-4s4 1.79 4 4v4c0 4.418-3.582 8-8 8s-8-3.582-8-8V9a3 3 0 016 0" />
+    </svg>
+  );
+}
+
+function PeaceIcon() {
+  return (
+    <svg
+      className="size-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path d="M9 4v12M15 4v12" />
+      <circle cx="9" cy="3" r="1.5" />
+      <circle cx="15" cy="3" r="1.5" />
+      <path d="M6 20c0-2 1.5-4 6-4s6 2 6 4" />
     </svg>
   );
 }

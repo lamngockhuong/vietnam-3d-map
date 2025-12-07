@@ -774,7 +774,7 @@ interface LoadingScreenProps {
 
 #### **HandTrackingVideo.tsx**
 
-**Purpose:** Display camera feed with hand landmark visualization and gesture detection status.
+**Purpose:** Display draggable camera feed with hand landmark visualization and gesture detection status.
 
 **Key Exports:**
 
@@ -782,14 +782,17 @@ interface LoadingScreenProps {
 
 **Key Responsibilities:**
 
-1. Render video and canvas elements
-2. Show hand tracking status
-3. Display current gesture
+1. Render video and canvas elements (fixed 320x240 resolution)
+2. Show hand tracking status with gesture indicator
+3. Display confidence bar for current gesture
 4. Propagate gesture changes to parent
+5. Support drag-and-drop positioning via `useDraggable` hook
+6. Persist window position to localStorage
 
 **Key State:**
 
 - Receives from `useHandTracking` hook
+- Position state from `useDraggable` hook
 
 **Props:**
 
@@ -803,36 +806,49 @@ interface HandTrackingVideoProps {
 
 **Display Elements:**
 
-1. **Video:** Mirrored camera feed (scaleX: -1)
-2. **Canvas:** Overlaid hand landmarks and connections
-3. **Status label:** Loading/error/active with hand count
-4. **Gesture label:** Current detected gesture
+1. **Drag Handle:** "Camera" title bar with grip icon - drag to reposition
+2. **Video:** Mirrored camera feed (scaleX: -1), aspect ratio 4:3
+3. **Canvas:** Overlaid hand landmarks (320x240 fixed size)
+4. **Gesture Indicator:** Colored bar with icon, label, and confidence percentage
+5. **Status Bar:** Loading/error/active with hand count
 
-**Status States:**
+**Gesture Indicator Colors:**
 
-- **Loading:** Yellow text "Loading..."
-- **Error:** Red text "Error: [message]"
-- **Active:** Green text "Active (N hands)"
+| Gesture | Color | Icon |
+|---------|-------|------|
+| palm-rotate | Blue | Move |
+| pinch-zoom | Emerald | ZoomIn |
+| fist-reset | Amber | RotateCcw |
+| pointing | Purple | Pointer |
+| peace-toggle | Pink | PanelLeft |
+| two-hand-zoom | Emerald-600 | ZoomIn |
+| two-hand-pan | Cyan-600 | MoveHorizontal |
+| two-hand-tilt | Indigo-600 | ArrowUpDown |
+| two-hand-screenshot | Rose-600 | Camera |
+| two-hand-reset | Amber-600 | RotateCcw |
 
-**Hand Visualization:**
+**Draggable Behavior:**
 
-- **Landmarks:** Colored dots (first hand: yellow, second: orange)
-- **Connections:** Lines following MediaPipe hand skeleton
-- **Colors:** Hand 0 = green/yellow, Hand 1 = blue/orange
-
-**Container Class:** `glass-panel` (styled elsewhere in globals)
+- Drag via title bar (data-drag-handle attribute)
+- Position saved to localStorage key `hand-tracking-video-position`
+- Constrained to viewport bounds
+- Supports both mouse and touch events
+- Initial position: x=16, y=400
 
 **Important Patterns:**
 
 - `useEffect` to propagate gesture changes (avoids setState during render)
 - Conditional rendering (only when enabled)
-- Dual element approach (video + canvas overlay)
-- Automatic gesture display (shown when gesture !== 'none')
+- Fixed canvas dimensions match MediaPipe video stream
+- Confidence bar shows gesture detection quality (0-100%)
+- Uses `useDraggable` hook for window repositioning
 
 **Dependencies:**
 
 - `@/hooks/useHandTracking` - Gesture detection hook
+- `@/hooks/useDraggable` - Drag and drop positioning
 - `@/i18n/dictionaries` - i18n system
+- `lucide-react` - Icons for gesture indicators
 
 ---
 
@@ -866,8 +882,11 @@ type GestureType =
   | 'pinch-zoom'           // Thumb-index pinch for zoom
   | 'fist-reset'           // Closed fist for reset
   | 'pointing'             // Single extended finger for fine rotation
+  | 'peace-toggle'         // V sign (2 fingers) for sidebar toggle
   | 'two-hand-zoom'        // Both hands pinched (zoom)
-  | 'two-hand-rotate'      // Both hands open (rotate + angle)
+  | 'two-hand-pan'         // Both hands pointing (pan/move)
+  | 'two-hand-tilt'        // Both hands open palms (tilt map)
+  | 'two-hand-screenshot'  // Both hands V sign (screenshot)
   | 'two-hand-reset';      // Both hands fist (reset)
 ```
 
@@ -880,8 +899,11 @@ interface HandGestureState {
   rotationDeltaY: number;     // Horizontal rotation delta
   zoomDelta: number;          // Zoom amount
   shouldReset: boolean;       // Reset to default camera
+  shouldToggleSidebar: boolean; // Toggle sidebar (peace sign)
+  shouldScreenshot: boolean;  // Take screenshot (two peace signs)
   handsDetected: number;      // Count of detected hands
   handPosition: { x: number; y: number } | null;  // Normalized 0-1
+  confidence: number;         // Gesture detection confidence 0-1
 }
 ```
 
@@ -906,6 +928,11 @@ interface HandGestureState {
    - Fine rotation based on index finger position
    - `rotationDeltaX/Y = finger.position * 0.015-0.02`
 
+5. **Peace Sign (2 fingers extended, thumb retracted):**
+   - `gesture: 'peace-toggle'`
+   - `shouldToggleSidebar = true`
+   - Requires `isThumbExtended = false` to differentiate from pinch
+
 **Two-Hand Gestures:**
 
 1. **Two-Hand Pinch Zoom (both pinching):**
@@ -913,13 +940,22 @@ interface HandGestureState {
    - `zoomDelta = (lastDistance - currentDistance) * 3`
    - `handPosition = center between palms`
 
-2. **Two-Hand Rotation (both open palms):**
-   - `gesture: 'two-hand-rotate'`
-   - Rotation based on center position
-   - Additional rotation from angle delta between hands
-   - Angle delta clamped to prevent jitter
+2. **Two-Hand Pan (both pointing):**
+   - `gesture: 'two-hand-pan'`
+   - Pan map based on center position between hands
+   - Move both index fingers together to pan
 
-3. **Two-Hand Reset (both fists):**
+3. **Two-Hand Tilt (both open palms, ≥3 fingers each):**
+   - `gesture: 'two-hand-tilt'`
+   - Tilt camera angle based on hand Y positions
+   - Move hands up/down to tilt view
+
+4. **Two-Hand Screenshot (both V signs, hands apart):**
+   - `gesture: 'two-hand-screenshot'`
+   - `shouldScreenshot = true`
+   - Requires `twoHandDist > 0.2` to differentiate from single hand
+
+5. **Two-Hand Reset (both fists):**
    - `gesture: 'two-hand-reset'`
    - `shouldReset = true`
 
@@ -1000,6 +1036,68 @@ interface HandGestureState {
 - Canvas update throttled to video frame rate
 - Lazy loading prevents bundle bloat
 - Cleanup on unmount prevents memory leaks
+
+---
+
+### **useDraggable.ts**
+
+**Purpose:** Make elements draggable with position persistence and viewport constraints.
+
+**Key Exports:**
+
+- `useDraggable(options?: UseDraggableOptions)` - Hook function
+
+**Key Responsibilities:**
+
+1. Track mouse/touch drag events
+2. Calculate new position based on drag delta
+3. Constrain position to viewport bounds
+4. Persist position to localStorage
+5. Support both mouse and touch interactions
+
+**Options Interface:**
+
+```typescript
+interface UseDraggableOptions {
+  storageKey?: string;           // localStorage key for position persistence
+  initialPosition?: Position;    // Default position { x: number; y: number }
+}
+```
+
+**Return Values:**
+
+```typescript
+{
+  position: Position;                    // Current { x, y } position
+  isDragging: boolean;                   // True during active drag
+  elementRef: RefObject<HTMLDivElement>; // Ref to attach to draggable element
+  handleMouseDown: (e: MouseEvent) => void;
+  handleTouchStart: (e: TouchEvent) => void;
+  resetPosition: () => void;             // Reset to initial position
+}
+```
+
+**Drag Handle Pattern:**
+
+- Only starts drag when target has `[data-drag-handle]` attribute
+- Allows other interactions (buttons, links) inside draggable element
+
+**Viewport Constraints:**
+
+- Uses `elementRef.current.getBoundingClientRect()` for element dimensions
+- Clamps X: `[0, window.innerWidth - element.width]`
+- Clamps Y: `[0, window.innerHeight - element.height]`
+
+**Important Patterns:**
+
+- `useRef` for drag start position tracking
+- `useEffect` for global mousemove/mouseup listeners during drag
+- Passive event handling on document for smooth dragging
+- Cleanup of event listeners on drag end or unmount
+
+**Dependencies:**
+
+- React hooks only (no external dependencies)
 
 ---
 

@@ -98,6 +98,10 @@ src/
 │   ├── map/               # 3D map components (Three.js/R3F)
 │   └── ui/                # UI components (React)
 ├── hooks/                 # Custom React hooks
+│   ├── useHandTracking.ts # MediaPipe hand gesture detection
+│   ├── useDraggable.ts    # Drag-and-drop positioning
+│   ├── useUIState.ts      # localStorage state persistence
+│   └── useClickOutside.ts # Click outside detection
 ├── i18n/                  # Internationalization
 │   ├── config.ts          # Locale configuration
 │   ├── dictionaries.ts    # Translation strings
@@ -139,6 +143,66 @@ Edit `src/i18n/province-names.ts` to add or update province name translations.
 - Source: `data/vietnam-wards.geojson` (not in repo, ~276MB)
 - Run preprocessing: `pnpm preprocess:wards`
 - Output: `public/wards/{provinceId}.json`
+
+## Working with Hand Tracking
+
+### Overview
+
+Hand tracking uses MediaPipe Hands to detect gestures via webcam. The main hook is `useHandTracking.ts`.
+
+### Adding New Gestures
+
+1. Add gesture type to `GestureType` union in `useHandTracking.ts`:
+
+   ```typescript
+   export type GestureType =
+     | 'none'
+     | 'palm-rotate'
+     | 'your-new-gesture'  // Add here
+     // ...
+   ```
+
+2. Add detection logic in `detectGesture()` function:
+
+   ```typescript
+   // Check finger count and positions
+   if (extendedFingers === 3 && someCondition) {
+     return 'your-new-gesture';
+   }
+   ```
+
+3. Add state fields to `HandGestureState` if needed:
+
+   ```typescript
+   interface HandGestureState {
+     // ...
+     yourNewAction: boolean;
+   }
+   ```
+
+4. Handle the gesture in `MapWrapper.tsx` or `CameraController.tsx`
+
+5. Update `HandTrackingVideo.tsx` with icon and color:
+
+   ```typescript
+   const GESTURE_CONFIG = {
+     'your-new-gesture': { icon: YourIcon, label: 'Label', color: 'bg-color-500' },
+   };
+   ```
+
+6. Add translations to `dictionaries.ts` under `controls` section
+
+7. Update documentation:
+   - `docs/hand-gesture-guide.md` (EN & VI)
+   - `README.md` Controls section
+   - `docs/components-hooks-analysis.md`
+
+### Gesture Detection Tips
+
+- Use `countExtendedFingers()` to count raised fingers
+- Use `isThumbExtended()` to differentiate pinch from peace sign
+- For two-hand gestures, check `twoHandDist` to ensure hands are apart
+- Add confidence threshold for stability
 
 ## Pull Request Process
 
