@@ -363,9 +363,27 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
       [gl.domElement],
     );
 
+    // Track if gesture just started to sync with current camera
+    const wasGestureActive = useRef(false);
+
     // Apply gesture changes
     useEffect(() => {
-      if (!gestureState || gestureState.gesture === 'none') return;
+      if (!gestureState || !controlsRef.current) return;
+
+      const controls = controlsRef.current;
+      const isGestureActive = gestureState.gesture !== 'none';
+
+      // When gesture starts, sync targetRef with current camera position
+      if (isGestureActive && !wasGestureActive.current) {
+        targetRef.current = {
+          azimuthalAngle: controls.getAzimuthalAngle(),
+          polarAngle: controls.getPolarAngle(),
+          distance: controls.getDistance(),
+        };
+      }
+      wasGestureActive.current = isGestureActive;
+
+      if (!isGestureActive) return;
 
       if (gestureState.shouldReset) {
         // Reset to default view
@@ -375,13 +393,11 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
           distance: 5,
         };
         // Also reset the OrbitControls target
-        if (controlsRef.current) {
-          controlsRef.current.target.set(...DEFAULT_CAMERA.target);
-          camera.position.set(...DEFAULT_CAMERA.position);
-          controlsRef.current.update();
-        }
+        controls.target.set(...DEFAULT_CAMERA.target);
+        camera.position.set(...DEFAULT_CAMERA.position);
+        controls.update();
       } else {
-        // Apply rotation deltas
+        // Apply rotation deltas to current position
         if (gestureState.rotationDeltaY !== 0) {
           targetRef.current.azimuthalAngle += gestureState.rotationDeltaY;
         }
@@ -391,6 +407,39 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
             0.1,
             Math.min(Math.PI / 2.1, targetRef.current.polarAngle + gestureState.rotationDeltaX),
           );
+        }
+
+        // Apply pan delta for two-hand pan gesture
+        if ((gestureState.panDeltaX !== 0 || gestureState.panDeltaY !== 0) && controls) {
+          const panSpeed = 8; // Adjust for desired pan speed
+
+          // Get camera's right and forward vectors projected onto the ground plane
+          const cameraDirection = new THREE.Vector3();
+          camera.getWorldDirection(cameraDirection);
+
+          // Right vector (perpendicular to camera direction on XZ plane)
+          const right = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x).normalize();
+
+          // Forward vector (camera direction projected onto XZ plane)
+          const forward = new THREE.Vector3(cameraDirection.x, 0, cameraDirection.z).normalize();
+
+          // Calculate pan offset - note: hand movement is mirrored, so we invert X
+          const panOffset = new THREE.Vector3()
+            .addScaledVector(right, gestureState.panDeltaX * panSpeed)
+            .addScaledVector(forward, gestureState.panDeltaY * panSpeed);
+
+          // Apply pan to target and camera
+          const newTarget = controls.target.clone().add(panOffset);
+
+          // Clamp target within bounds
+          newTarget.x = Math.max(-3, Math.min(3, newTarget.x));
+          newTarget.z = Math.max(-3, Math.min(3, newTarget.z));
+          newTarget.y = 0;
+
+          controls.target.copy(newTarget);
+          camera.position.add(panOffset);
+
+          controls.update();
         }
 
         // Apply zoom delta using zoomToPoint for hand gestures
@@ -416,31 +465,41 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
       if (!controlsRef.current) return;
 
       const target = targetRef.current;
-
-      // Smooth interpolation factor
-      const lerp = 0.08;
-
-      // Get current values from controls
       const controls = controlsRef.current;
-      const currentAzimuth = controls.getAzimuthalAngle();
-      const currentPolar = controls.getPolarAngle();
-      const currentDistance = controls.getDistance();
 
-      // Apply only if gesture is active
-      if (gestureState && gestureState.gesture !== 'none') {
-        // Interpolate towards target
-        const newAzimuth = currentAzimuth + (target.azimuthalAngle - currentAzimuth) * lerp;
-        const newPolar = currentPolar + (target.polarAngle - currentPolar) * lerp;
-        const newDistance = currentDistance + (target.distance - currentDistance) * lerp;
+      // Apply only if gesture is active (rotation or tilt gestures)
+      if (gestureState && gestureState.gesture !== 'none' && !gestureState.shouldReset) {
+        const isRotationGesture =
+          gestureState.gesture === 'palm-rotate' ||
+          gestureState.gesture === 'pointing' ||
+          gestureState.gesture === 'two-hand-tilt';
 
-        // Calculate new camera position based on spherical coordinates
-        const x = newDistance * Math.sin(newPolar) * Math.sin(newAzimuth);
-        const y = newDistance * Math.cos(newPolar);
-        const z = newDistance * Math.sin(newPolar) * Math.cos(newAzimuth);
+        if (isRotationGesture) {
+          // Smooth interpolation factor
+          const lerp = 0.12;
 
-        camera.position.set(x, y, z);
-        camera.lookAt(0, 0, 0);
-        controls.update();
+          // Get current values from controls
+          const currentAzimuth = controls.getAzimuthalAngle();
+          const currentPolar = controls.getPolarAngle();
+          const currentDistance = controls.getDistance();
+
+          // Interpolate towards target
+          const newAzimuth = currentAzimuth + (target.azimuthalAngle - currentAzimuth) * lerp;
+          const newPolar = currentPolar + (target.polarAngle - currentPolar) * lerp;
+          const newDistance = currentDistance + (target.distance - currentDistance) * lerp;
+
+          // Get current orbit target (where camera is looking at)
+          const orbitTarget = controls.target.clone();
+
+          // Calculate new camera position based on spherical coordinates relative to orbit target
+          const x = orbitTarget.x + newDistance * Math.sin(newPolar) * Math.sin(newAzimuth);
+          const y = newDistance * Math.cos(newPolar);
+          const z = orbitTarget.z + newDistance * Math.sin(newPolar) * Math.cos(newAzimuth);
+
+          camera.position.set(x, y, z);
+          camera.lookAt(orbitTarget);
+          controls.update();
+        }
       }
     });
 

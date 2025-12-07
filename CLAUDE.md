@@ -36,17 +36,21 @@ MapWrapper (state owner)
 ├── VietnamMap (3D canvas)
 │   ├── Provinces → onSelect/onDoubleClick callbacks
 │   └── Wards → onSelect callback
-└── Sidebar (UI panel)
-    ├── ProvinceList → onSelect/onDoubleClick callbacks
-    └── WardList → onSelect/onBack callbacks
+├── Sidebar (UI panel)
+│   ├── ProvinceList → onSelect/onDoubleClick callbacks
+│   └── WardList → onSelect/onBack callbacks
+├── HandTrackingVideo (draggable camera preview)
+├── Legend (location info panel)
+└── Controls (interaction guide panel)
 ```
 
 Key state in `MapWrapper`:
 
-- `selectedProvinceId` - Currently highlighted province
-- `viewingProvinceId` - Province showing wards (double-click triggers)
-- `selectedWardId` - Currently selected ward
-- `cameraRef` - Ref to CameraController for programmatic zoom
+- `highlightedProvince` - Currently highlighted province (single click)
+- `selectedProvince` - Province showing wards (double-click triggers)
+- `selectedWard` - Currently selected ward
+- `sidebarOpen` - Sidebar visibility (controlled by gesture or click)
+- `gestureState` - Hand tracking gesture state from `useHandTracking`
 
 Selection flow:
 
@@ -68,7 +72,7 @@ Client-side only rendering (Three.js WebGL requirements):
 
 ### Sidebar System
 
-- **Sidebar** - Collapsible panel with province/ward lists
+- **Sidebar** - Collapsible panel with province/ward lists, supports controlled props
 - **ProvinceList/WardList** - Virtualized lists (`@tanstack/react-virtual`)
 - **SearchInput** - Diacritic-insensitive Vietnamese search
 - **InfoPanel** - Province/ward stats (type, area, population, density)
@@ -109,11 +113,24 @@ preprocess-wards.ts → public/wards/*.json (34 files, ~9.4 MB total)
 
 - **useUIState** hook - localStorage for panel open/close state
 - **useClickOutside** hook - Auto-closes panels on mobile (< 640px)
+- **useDraggable** hook - Draggable elements with position persistence
 
 ### Hand Tracking
 
 - `useHandTracking` hook - MediaPipe Hands integration
-- Gestures: open palm (rotate), pinch (zoom), fist (reset), pointing (fine rotation)
+- Single-hand gestures:
+  - Open palm → rotate map
+  - Pinch → zoom in/out
+  - Fist → reset view
+  - Pointing (1 finger) → fine rotation
+  - Peace sign (2 fingers) → toggle sidebar
+- Two-hand gestures:
+  - Two pointing fingers → pan/move map
+  - Two peace signs → take screenshot
+  - Two open palms → tilt map
+  - Two pinches → two-hand zoom
+  - Two fists → reset view
+- `HandTrackingVideo` component - Draggable camera preview with gesture indicator
 
 ## Technical Constraints
 
@@ -121,6 +138,17 @@ preprocess-wards.ts → public/wards/*.json (34 files, ~9.4 MB total)
 - **React 19 + R3F 9** - Peer dependency warnings expected but functional
 - **Dynamic imports** - Must use `ssr: false` in Client Components (`'use client'`)
 - **Shader uniforms** - Avoid `cameraPosition` (Three.js built-in); use `viewPos`
+- **Canvas size** - Hand tracking uses fixed 320x240 resolution for MediaPipe
+
+## Key Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useHandTracking` | MediaPipe Hands gesture detection |
+| `useUIState` | localStorage-persisted UI state |
+| `useClickOutside` | Close panels on outside click |
+| `useDraggable` | Make elements draggable with position memory |
+| `useDebounce` | Debounce rapidly changing values |
 
 ## Legacy Content
 

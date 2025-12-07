@@ -38,6 +38,8 @@ pnpm preprocess:wards
 
 ## Controls
 
+### Mouse & Keyboard
+
 | Input | Action |
 |-------|--------|
 | Mouse drag | Rotate map |
@@ -45,15 +47,39 @@ pnpm preprocess:wards
 | Click province | Highlight province |
 | Double-click province | View wards |
 | Back button | Return to provinces |
-| Touch drag | Rotate (mobile) |
-| Two-finger drag | Rotate (trackpad) |
-| Pinch gesture | Zoom (mobile/trackpad) |
 | Arrow keys | Rotate |
 | +/- keys | Zoom |
 | R key | Reset view |
-| Open palm | Rotate (hand tracking) |
-| Pinch gesture | Zoom (hand tracking) |
-| Fist | Reset (hand tracking) |
+
+### Touch (Mobile/Trackpad)
+
+| Input | Action |
+|-------|--------|
+| Touch drag | Rotate |
+| Two-finger drag | Rotate |
+| Pinch gesture | Zoom |
+
+### Hand Tracking (Single Hand)
+
+| Gesture | Action |
+|---------|--------|
+| Open palm | Rotate map |
+| Pinch | Zoom in/out |
+| Fist | Reset view |
+| Pointing (1 finger) | Fine rotation |
+| Peace sign (2 fingers) | Toggle sidebar |
+
+### Hand Tracking (Two Hands)
+
+| Gesture | Action |
+|---------|--------|
+| Two pointing fingers | Pan/move map |
+| Two peace signs | Take screenshot |
+| Two open palms | Tilt map |
+| Two pinches | Two-hand zoom |
+| Two fists | Reset view |
+
+> **Note**: The camera preview window is draggable - drag the title bar to reposition it anywhere on screen. Position is saved automatically.
 
 ## Project Structure
 
@@ -101,7 +127,10 @@ docs/
 ├── project-overview-pdr.md     # Vision, goals, requirements
 ├── system-architecture.md      # Architecture & pipelines
 ├── code-standards.md           # Development conventions
-└── codebase-summary.md         # Directory structure details
+├── codebase-summary.md         # Directory structure details
+├── hand-gesture-guide.md       # Hand tracking controls guide
+├── components-hooks-analysis.md # Components & hooks documentation
+└── data-pipeline.md            # Data pipeline documentation
 ```
 
 ## Technology Stack
@@ -129,6 +158,9 @@ See `/docs` directory for comprehensive documentation:
 - **[system-architecture.md](docs/system-architecture.md)** - Architecture diagrams, rendering pipeline, data flow
 - **[code-standards.md](docs/code-standards.md)** - TypeScript, React, Three.js conventions
 - **[codebase-summary.md](docs/codebase-summary.md)** - File organization, key files, data flow details
+- **[hand-gesture-guide.md](docs/hand-gesture-guide.md)** - Complete hand tracking controls guide (EN/VI)
+- **[components-hooks-analysis.md](docs/components-hooks-analysis.md)** - Components & hooks documentation
+- **[data-pipeline.md](docs/data-pipeline.md)** - Data pipeline documentation
 
 ## Key Files
 

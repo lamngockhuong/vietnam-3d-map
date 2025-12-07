@@ -54,6 +54,9 @@ export interface Dictionary {
     openPalm: string;
     pinch: string;
     fist: string;
+    peace: string;
+    pointing: string;
+    twoHandPeace: string;
     enableCamera: string;
     disableCamera: string;
     touchControls: string;
@@ -204,6 +207,9 @@ const dictionaries: Record<Locale, Dictionary> = {
       openPalm: 'Xòe tay: Xoay',
       pinch: 'Véo: Thu phóng',
       fist: 'Nắm tay: Đặt lại',
+      peace: 'Chữ V: Bật/tắt sidebar',
+      pointing: 'Chỉ tay: Xoay tinh chỉnh',
+      twoHandPeace: 'Hai chữ V: Chụp màn hình',
       enableCamera: 'Bật Camera',
       disableCamera: 'Tắt Camera',
       touchControls: 'Cảm ứng',
@@ -352,6 +358,9 @@ const dictionaries: Record<Locale, Dictionary> = {
       openPalm: 'Open Palm: Rotate',
       pinch: 'Pinch: Zoom',
       fist: 'Fist: Reset',
+      peace: 'Peace Sign: Toggle sidebar',
+      pointing: 'Pointing: Fine rotation',
+      twoHandPeace: 'Two Peace Signs: Screenshot',
       enableCamera: 'Enable Camera',
       disableCamera: 'Disable Camera',
       touchControls: 'Touch',

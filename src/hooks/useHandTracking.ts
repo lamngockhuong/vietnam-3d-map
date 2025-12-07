@@ -10,8 +10,11 @@ export type GestureType =
   | 'pinch-zoom'
   | 'fist-reset'
   | 'pointing'
+  | 'peace-toggle'
   | 'two-hand-zoom'
-  | 'two-hand-rotate'
+  | 'two-hand-pan'
+  | 'two-hand-tilt'
+  | 'two-hand-screenshot'
   | 'two-hand-reset';
 
 export interface HandGestureState {
@@ -19,10 +22,18 @@ export interface HandGestureState {
   rotationDeltaX: number;
   rotationDeltaY: number;
   zoomDelta: number;
+  // Pan delta for two-hand pan gesture (normalized -1 to 1)
+  panDeltaX: number;
+  panDeltaY: number;
   shouldReset: boolean;
   handsDetected: number;
   // Normalized hand position (0-1) for zoom-to-point
   handPosition: { x: number; y: number } | null;
+  // Confidence level for gesture (0-1)
+  confidence: number;
+  // Action triggers (one-shot actions)
+  shouldToggleSidebar: boolean;
+  shouldScreenshot: boolean;
 }
 
 interface HandLandmark {
@@ -30,6 +41,33 @@ interface HandLandmark {
   y: number;
   z: number;
 }
+
+// Configuration for gesture sensitivity and thresholds
+const GESTURE_CONFIG = {
+  // Pinch detection threshold (higher = easier to trigger)
+  pinchThreshold: 0.12,
+  // Minimum pinch distance change to register zoom
+  pinchMinDelta: 0.005,
+  // Rotation sensitivity multipliers (higher = more responsive)
+  rotationSensitivityX: 0.06,
+  rotationSensitivityY: 0.08,
+  // Fine rotation sensitivity (pointing gesture)
+  fineRotationSensitivityX: 0.03,
+  fineRotationSensitivityY: 0.04,
+  // Pan sensitivity for two-hand gesture
+  panSensitivity: 0.015,
+  // Tilt sensitivity for two-hand palms gesture
+  tiltSensitivity: 0.08,
+  // Zoom sensitivity
+  singleHandZoomSensitivity: 8,
+  twoHandZoomSensitivity: 5,
+  // Smoothing factor (0-1, higher = more smoothing)
+  smoothingFactor: 0.3,
+  // Gesture switch cooldown frames
+  gestureCooldown: 5,
+  // Minimum finger extension threshold
+  fingerExtensionThreshold: 0.85,
+};
 
 // Helper functions
 function getPinchDistance(landmarks: HandLandmark[]): number {
@@ -44,12 +82,47 @@ function countExtendedFingers(landmarks: HandLandmark[]): number {
   const ring = landmarks[16];
   const pinky = landmarks[20];
 
+  // More lenient finger extension detection
+  const threshold = GESTURE_CONFIG.fingerExtensionThreshold;
   return [
-    index.y < landmarks[6].y,
-    middle.y < landmarks[10].y,
-    ring.y < landmarks[14].y,
-    pinky.y < landmarks[18].y,
+    index.y < landmarks[6].y * threshold,
+    middle.y < landmarks[10].y * threshold,
+    ring.y < landmarks[14].y * threshold,
+    pinky.y < landmarks[18].y * threshold,
   ].filter(Boolean).length;
+}
+
+// Check if thumb is extended (not folded into palm)
+function isThumbExtended(landmarks: HandLandmark[]): boolean {
+  const thumbTip = landmarks[4];
+  const thumbBase = landmarks[2];
+  const indexBase = landmarks[5];
+
+  // Thumb is extended if thumb tip is far from index finger base
+  const distToIndex = Math.hypot(thumbTip.x - indexBase.x, thumbTip.y - indexBase.y);
+  return distToIndex > 0.1; // Threshold for thumb being "out"
+}
+
+// Smooth value using exponential moving average
+function smoothValue(current: number, previous: number, factor: number): number {
+  return previous + (current - previous) * (1 - factor);
+}
+
+// Calculate gesture confidence based on landmark stability
+function calculateConfidence(landmarks: HandLandmark[], previousLandmarks: HandLandmark[] | null): number {
+  if (!previousLandmarks) return 0.5;
+
+  let totalMovement = 0;
+  for (let i = 0; i < landmarks.length; i++) {
+    totalMovement += Math.hypot(
+      landmarks[i].x - previousLandmarks[i].x,
+      landmarks[i].y - previousLandmarks[i].y
+    );
+  }
+
+  // Lower movement = higher confidence
+  const avgMovement = totalMovement / landmarks.length;
+  return Math.max(0.3, Math.min(1, 1 - avgMovement * 10));
 }
 
 export function useHandTracking(enabled: boolean = true) {
@@ -65,15 +138,34 @@ export function useHandTracking(enabled: boolean = true) {
     rotationDeltaX: 0,
     rotationDeltaY: 0,
     zoomDelta: 0,
+    panDeltaX: 0,
+    panDeltaY: 0,
     shouldReset: false,
     handsDetected: 0,
     handPosition: null,
+    confidence: 0,
+    shouldToggleSidebar: false,
+    shouldScreenshot: false,
   });
 
   // Tracking state refs
   const lastPinchDistance = useRef(0);
   const lastTwoHandDistance = useRef(0);
   const lastHandPositions = useRef<Array<{ x: number; y: number } | null>>([null, null]);
+  const lastTwoHandCenter = useRef<{ x: number; y: number } | null>(null);
+
+  // Smoothing refs for stability
+  const smoothedRotationX = useRef(0);
+  const smoothedRotationY = useRef(0);
+  const smoothedZoom = useRef(0);
+  const smoothedPanX = useRef(0);
+  const smoothedPanY = useRef(0);
+  const smoothedTilt = useRef(0);
+
+  // Gesture stability refs
+  const lastGesture = useRef<GestureType>('none');
+  const gestureCooldownCounter = useRef(0);
+  const previousLandmarks = useRef<HandLandmark[] | null>(null);
 
   const onResults = useCallback((results: Results) => {
     // Draw hand landmarks on canvas
@@ -81,9 +173,14 @@ export function useHandTracking(enabled: boolean = true) {
     const ctx = canvas?.getContext('2d');
 
     if (canvas && ctx) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Use fixed dimensions matching the video stream (320x240)
+      const canvasWidth = 320;
+      const canvasHeight = 240;
+      if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+      }
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
       if (results.multiHandLandmarks) {
         results.multiHandLandmarks.forEach((landmarks, idx) => {
@@ -121,8 +218,8 @@ export function useHandTracking(enabled: boolean = true) {
             const p1 = landmarks[i];
             const p2 = landmarks[j];
             ctx.beginPath();
-            ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
-            ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+            ctx.moveTo(p1.x * canvasWidth, p1.y * canvasHeight);
+            ctx.lineTo(p2.x * canvasWidth, p2.y * canvasHeight);
             ctx.stroke();
           });
 
@@ -130,7 +227,7 @@ export function useHandTracking(enabled: boolean = true) {
           ctx.fillStyle = idx === 0 ? '#FFEB3B' : '#FF9800';
           landmarks.forEach((lm) => {
             ctx.beginPath();
-            ctx.arc(lm.x * canvas.width, lm.y * canvas.height, 3, 0, 2 * Math.PI);
+            ctx.arc(lm.x * canvasWidth, lm.y * canvasHeight, 3, 0, 2 * Math.PI);
             ctx.fill();
           });
         });
@@ -143,16 +240,36 @@ export function useHandTracking(enabled: boolean = true) {
       lastPinchDistance.current = 0;
       lastTwoHandDistance.current = 0;
       lastHandPositions.current = [null, null];
+      lastTwoHandCenter.current = null;
+      previousLandmarks.current = null;
+      smoothedRotationX.current = 0;
+      smoothedRotationY.current = 0;
+      smoothedZoom.current = 0;
+      smoothedPanX.current = 0;
+      smoothedPanY.current = 0;
+      smoothedTilt.current = 0;
+      lastGesture.current = 'none';
+      gestureCooldownCounter.current = 0;
       setGestureState({
         gesture: 'none',
         rotationDeltaX: 0,
         rotationDeltaY: 0,
         zoomDelta: 0,
+        panDeltaX: 0,
+        panDeltaY: 0,
         shouldReset: false,
         handsDetected: 0,
         handPosition: null,
+        confidence: 0,
+        shouldToggleSidebar: false,
+        shouldScreenshot: false,
       });
       return;
+    }
+
+    // Gesture cooldown to prevent rapid switching
+    if (gestureCooldownCounter.current > 0) {
+      gestureCooldownCounter.current--;
     }
 
     // TWO-HAND GESTURES
@@ -169,51 +286,125 @@ export function useHandTracking(enabled: boolean = true) {
 
       const pinch1 = getPinchDistance(hand1);
       const pinch2 = getPinchDistance(hand2);
-      const bothPinching = pinch1 < 0.08 && pinch2 < 0.08;
+      const bothPinching = pinch1 < GESTURE_CONFIG.pinchThreshold && pinch2 < GESTURE_CONFIG.pinchThreshold;
+
+      // Use center point between two hands
+      const centerX = (palm1.x + palm2.x) / 2;
+      const centerY = (palm1.y + palm2.y) / 2;
 
       // TWO-HAND PINCH ZOOM
       if (bothPinching) {
         let zoomDelta = 0;
         if (lastTwoHandDistance.current > 0) {
           const delta = twoHandDist - lastTwoHandDistance.current;
-          zoomDelta = delta * 3;
+          if (Math.abs(delta) > GESTURE_CONFIG.pinchMinDelta) {
+            zoomDelta = delta * GESTURE_CONFIG.twoHandZoomSensitivity;
+            // Apply smoothing
+            smoothedZoom.current = smoothValue(zoomDelta, smoothedZoom.current, GESTURE_CONFIG.smoothingFactor);
+            zoomDelta = smoothedZoom.current;
+          }
         }
         lastTwoHandDistance.current = twoHandDist;
 
-        // Use center point between two hands for zoom target
-        const centerX = (palm1.x + palm2.x) / 2;
-        const centerY = (palm1.y + palm2.y) / 2;
+        if (lastGesture.current !== 'two-hand-zoom' && gestureCooldownCounter.current === 0) {
+          lastGesture.current = 'two-hand-zoom';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
 
         setGestureState({
           gesture: 'two-hand-zoom',
           rotationDeltaX: 0,
           rotationDeltaY: 0,
           zoomDelta,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: false,
           handsDetected: 2,
           handPosition: { x: centerX, y: centerY },
+          confidence: 0.9,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       }
-      // TWO-HAND ROTATION (both palms open)
-      else if (fingers1 >= 4 && fingers2 >= 4) {
-        const centerX = (palm1.x + palm2.x) / 2;
-        const centerY = (palm1.y + palm2.y) / 2;
+      // TWO-HAND PAN (both pointing) - move map by tracking center point movement
+      else if (fingers1 === 1 && fingers2 === 1) {
+        let panDeltaX = 0;
+        let panDeltaY = 0;
 
-        let rotationDeltaY = (centerX - 0.5) * 0.03;
-        const rotationDeltaX = (centerY - 0.5) * 0.02;
+        // Calculate pan based on center point movement
+        if (lastTwoHandCenter.current) {
+          const rawPanX = (centerX - lastTwoHandCenter.current.x) * GESTURE_CONFIG.panSensitivity;
+          const rawPanY = (centerY - lastTwoHandCenter.current.y) * GESTURE_CONFIG.panSensitivity;
 
-        // Calculate angle between hands for additional rotation
-        const angle = Math.atan2(palm2.y - palm1.y, palm2.x - palm1.x);
-        if (lastHandPositions.current[0] && lastHandPositions.current[1]) {
-          const lastAngle = Math.atan2(
-            lastHandPositions.current[1]!.y - lastHandPositions.current[0]!.y,
-            lastHandPositions.current[1]!.x - lastHandPositions.current[0]!.x,
-          );
-          const angleDelta = angle - lastAngle;
-          if (Math.abs(angleDelta) < 0.5) {
-            rotationDeltaY += angleDelta * 0.5;
-          }
+          // Apply smoothing
+          smoothedPanX.current = smoothValue(rawPanX, smoothedPanX.current, GESTURE_CONFIG.smoothingFactor);
+          smoothedPanY.current = smoothValue(rawPanY, smoothedPanY.current, GESTURE_CONFIG.smoothingFactor);
+
+          panDeltaX = smoothedPanX.current;
+          panDeltaY = smoothedPanY.current;
         }
+
+        lastTwoHandCenter.current = { x: centerX, y: centerY };
+        lastHandPositions.current = [
+          { x: palm1.x, y: palm1.y },
+          { x: palm2.x, y: palm2.y },
+        ];
+        lastTwoHandDistance.current = twoHandDist;
+
+        if (lastGesture.current !== 'two-hand-pan' && gestureCooldownCounter.current === 0) {
+          lastGesture.current = 'two-hand-pan';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
+
+        setGestureState({
+          gesture: 'two-hand-pan',
+          rotationDeltaX: 0,
+          rotationDeltaY: 0,
+          zoomDelta: 0,
+          panDeltaX,
+          panDeltaY,
+          shouldReset: false,
+          handsDetected: 2,
+          handPosition: { x: centerX, y: centerY },
+          confidence: 0.85,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
+        });
+      }
+      // TWO-HAND SCREENSHOT (both peace signs / 2+2 fingers) - take screenshot
+      // Require both hands to be clearly visible (distance between hands > threshold)
+      else if (fingers1 === 2 && fingers2 === 2 && twoHandDist > 0.2) {
+        // Only trigger once when first entering this gesture
+        const isNewGesture = lastGesture.current !== 'two-hand-screenshot';
+        const shouldTrigger = isNewGesture && gestureCooldownCounter.current === 0;
+
+        if (isNewGesture && gestureCooldownCounter.current === 0) {
+          lastGesture.current = 'two-hand-screenshot';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
+
+        setGestureState({
+          gesture: 'two-hand-screenshot',
+          rotationDeltaX: 0,
+          rotationDeltaY: 0,
+          zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
+          shouldReset: false,
+          handsDetected: 2,
+          handPosition: { x: centerX, y: centerY },
+          confidence: 0.9,
+          shouldToggleSidebar: false,
+          shouldScreenshot: shouldTrigger,
+        });
+      }
+      // TWO-HAND TILT (both palms open) - tilt map up/down based on center Y position
+      else if (fingers1 >= 3 && fingers2 >= 3) {
+        // Calculate tilt based on vertical center position
+        const rawTilt = (centerY - 0.5) * GESTURE_CONFIG.tiltSensitivity;
+
+        // Apply smoothing
+        smoothedTilt.current = smoothValue(rawTilt, smoothedTilt.current, GESTURE_CONFIG.smoothingFactor);
 
         lastHandPositions.current = [
           { x: palm1.x, y: palm1.y },
@@ -221,38 +412,61 @@ export function useHandTracking(enabled: boolean = true) {
         ];
         lastTwoHandDistance.current = twoHandDist;
 
+        if (lastGesture.current !== 'two-hand-tilt' && gestureCooldownCounter.current === 0) {
+          lastGesture.current = 'two-hand-tilt';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
+
         setGestureState({
-          gesture: 'two-hand-rotate',
-          rotationDeltaX,
-          rotationDeltaY,
+          gesture: 'two-hand-tilt',
+          rotationDeltaX: smoothedTilt.current, // Use rotationDeltaX for tilt (polar angle)
+          rotationDeltaY: 0,
           zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: false,
           handsDetected: 2,
           handPosition: { x: centerX, y: centerY },
+          confidence: 0.85,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       }
       // TWO FISTS - RESET
       else if (fingers1 === 0 && fingers2 === 0) {
         lastTwoHandDistance.current = 0;
+        lastTwoHandCenter.current = null;
+        lastGesture.current = 'two-hand-reset';
         setGestureState({
           gesture: 'two-hand-reset',
           rotationDeltaX: 0,
           rotationDeltaY: 0,
           zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: true,
           handsDetected: 2,
           handPosition: null,
+          confidence: 0.95,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       } else {
         lastTwoHandDistance.current = twoHandDist;
+        lastTwoHandCenter.current = null;
         setGestureState({
           gesture: 'none',
           rotationDeltaX: 0,
           rotationDeltaY: 0,
           zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: false,
           handsDetected: 2,
           handPosition: null,
+          confidence: 0.5,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       }
     }
@@ -269,66 +483,167 @@ export function useHandTracking(enabled: boolean = true) {
       const pinchDist = getPinchDistance(landmarks);
       const fingersExtended = countExtendedFingers(landmarks);
 
+      // Calculate confidence based on hand stability
+      const confidence = calculateConfidence(landmarks, previousLandmarks.current);
+      previousLandmarks.current = [...landmarks];
+
       // Calculate pinch center point (between thumb and index finger)
       const pinchCenterX = (thumb.x + index.x) / 2;
       const pinchCenterY = (thumb.y + index.y) / 2;
 
-      // SINGLE-HAND PINCH ZOOM
-      if (pinchDist < 0.08) {
+      // Helper to check if we should switch gestures
+      const canSwitchGesture = (newGesture: GestureType) => {
+        return lastGesture.current === newGesture || gestureCooldownCounter.current === 0;
+      };
+
+      // Check if thumb is extended (for distinguishing pinch from peace sign)
+      const thumbExtended = isThumbExtended(landmarks);
+
+      // SINGLE-HAND PINCH ZOOM (with improved threshold)
+      // Only trigger if thumb is extended (not folded) to avoid conflict with peace sign
+      if (pinchDist < GESTURE_CONFIG.pinchThreshold && thumbExtended && canSwitchGesture('pinch-zoom')) {
         let zoomDelta = 0;
         if (lastPinchDistance.current > 0) {
           const delta = lastPinchDistance.current - pinchDist;
-          zoomDelta = delta * 5;
+          if (Math.abs(delta) > GESTURE_CONFIG.pinchMinDelta) {
+            zoomDelta = delta * GESTURE_CONFIG.singleHandZoomSensitivity;
+            // Apply smoothing
+            smoothedZoom.current = smoothValue(zoomDelta, smoothedZoom.current, GESTURE_CONFIG.smoothingFactor);
+            zoomDelta = smoothedZoom.current;
+          }
         }
         lastPinchDistance.current = pinchDist;
+
+        if (lastGesture.current !== 'pinch-zoom') {
+          lastGesture.current = 'pinch-zoom';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
 
         setGestureState({
           gesture: 'pinch-zoom',
           rotationDeltaX: 0,
           rotationDeltaY: 0,
           zoomDelta,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: false,
           handsDetected: 1,
           handPosition: { x: pinchCenterX, y: pinchCenterY },
+          confidence,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       }
-      // OPEN PALM - ROTATION
-      else if (fingersExtended >= 4) {
+      // PEACE SIGN (2 fingers) - TOGGLE SIDEBAR
+      else if (fingersExtended === 2 && canSwitchGesture('peace-toggle')) {
         lastPinchDistance.current = 0;
+
+        // Only trigger once when first entering this gesture
+        const isNewGesture = lastGesture.current !== 'peace-toggle';
+        const shouldTrigger = isNewGesture;
+
+        if (isNewGesture) {
+          lastGesture.current = 'peace-toggle';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
+
+        setGestureState({
+          gesture: 'peace-toggle',
+          rotationDeltaX: 0,
+          rotationDeltaY: 0,
+          zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
+          shouldReset: false,
+          handsDetected: 1,
+          handPosition: { x: index.x, y: index.y },
+          confidence,
+          shouldToggleSidebar: shouldTrigger,
+          shouldScreenshot: false,
+        });
+      }
+      // OPEN PALM - ROTATION (with improved sensitivity)
+      else if (fingersExtended >= 3 && canSwitchGesture('palm-rotate')) {
+        lastPinchDistance.current = 0;
+
+        // Raw rotation values with increased sensitivity
+        const rawRotationX = (palm.y - 0.5) * GESTURE_CONFIG.rotationSensitivityX;
+        const rawRotationY = (palm.x - 0.5) * GESTURE_CONFIG.rotationSensitivityY;
+
+        // Apply smoothing to reduce jitter
+        smoothedRotationX.current = smoothValue(rawRotationX, smoothedRotationX.current, GESTURE_CONFIG.smoothingFactor);
+        smoothedRotationY.current = smoothValue(rawRotationY, smoothedRotationY.current, GESTURE_CONFIG.smoothingFactor);
+
+        if (lastGesture.current !== 'palm-rotate') {
+          lastGesture.current = 'palm-rotate';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
+
         setGestureState({
           gesture: 'palm-rotate',
-          rotationDeltaX: (palm.y - 0.5) * 0.03,
-          rotationDeltaY: (palm.x - 0.5) * 0.05,
+          rotationDeltaX: smoothedRotationX.current,
+          rotationDeltaY: smoothedRotationY.current,
           zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: false,
           handsDetected: 1,
           handPosition: { x: palm.x, y: palm.y },
+          confidence,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       }
       // FIST - RESET
-      else if (fingersExtended === 0) {
+      else if (fingersExtended === 0 && canSwitchGesture('fist-reset')) {
         lastPinchDistance.current = 0;
+        lastGesture.current = 'fist-reset';
+        smoothedRotationX.current = 0;
+        smoothedRotationY.current = 0;
         setGestureState({
           gesture: 'fist-reset',
           rotationDeltaX: 0,
           rotationDeltaY: 0,
           zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: true,
           handsDetected: 1,
           handPosition: null,
+          confidence: 0.9,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       }
-      // POINTING (1 finger) - Fine rotation
-      else if (fingersExtended === 1) {
+      // POINTING (1 finger) - Fine rotation with improved sensitivity
+      else if (fingersExtended === 1 && canSwitchGesture('pointing')) {
         lastPinchDistance.current = 0;
+
+        const rawRotationX = (index.y - 0.5) * GESTURE_CONFIG.fineRotationSensitivityX;
+        const rawRotationY = (index.x - 0.5) * GESTURE_CONFIG.fineRotationSensitivityY;
+
+        // Apply smoothing
+        smoothedRotationX.current = smoothValue(rawRotationX, smoothedRotationX.current, GESTURE_CONFIG.smoothingFactor);
+        smoothedRotationY.current = smoothValue(rawRotationY, smoothedRotationY.current, GESTURE_CONFIG.smoothingFactor);
+
+        if (lastGesture.current !== 'pointing') {
+          lastGesture.current = 'pointing';
+          gestureCooldownCounter.current = GESTURE_CONFIG.gestureCooldown;
+        }
+
         setGestureState({
           gesture: 'pointing',
-          rotationDeltaX: (index.y - 0.5) * 0.015,
-          rotationDeltaY: (index.x - 0.5) * 0.02,
+          rotationDeltaX: smoothedRotationX.current,
+          rotationDeltaY: smoothedRotationY.current,
           zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: false,
           handsDetected: 1,
           handPosition: { x: index.x, y: index.y },
+          confidence,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       } else {
         lastPinchDistance.current = 0;
@@ -337,9 +652,14 @@ export function useHandTracking(enabled: boolean = true) {
           rotationDeltaX: 0,
           rotationDeltaY: 0,
           zoomDelta: 0,
+          panDeltaX: 0,
+          panDeltaY: 0,
           shouldReset: false,
           handsDetected: 1,
           handPosition: null,
+          confidence: 0.5,
+          shouldToggleSidebar: false,
+          shouldScreenshot: false,
         });
       }
     }

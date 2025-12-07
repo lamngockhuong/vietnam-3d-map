@@ -37,6 +37,9 @@ interface SidebarProps {
   onProvinceDoubleClick: (province: ProvinceData) => void;
   onWardSelect: (ward: WardData) => void;
   onBackToProvinces: () => void;
+  // Optional controlled props
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function Sidebar({
@@ -53,8 +56,14 @@ export function Sidebar({
   onProvinceDoubleClick,
   onWardSelect,
   onBackToProvinces,
+  isOpen: controlledIsOpen,
+  onOpenChange: controlledOnOpenChange,
 }: SidebarProps) {
-  const [isOpen, setIsOpen] = useUIState('sidebarOpen');
+  const [internalIsOpen, internalSetIsOpen] = useUIState('sidebarOpen');
+
+  // Use controlled props if provided, otherwise use internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const setIsOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : internalSetIsOpen;
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
