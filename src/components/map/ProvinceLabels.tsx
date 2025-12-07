@@ -3,10 +3,13 @@
 import { Billboard, Text } from '@react-three/drei';
 import { useMemo } from 'react';
 import { type ProvinceData, VIETNAM_BOUNDS } from '@/data/provinces-data';
+import type { Locale } from '@/i18n/config';
+import { getProvinceName } from '@/i18n/province-names';
 
 interface ProvinceLabelProps {
   provinces: ProvinceData[];
   showLabels: boolean;
+  locale: Locale;
 }
 
 const center = {
@@ -57,21 +60,21 @@ const PRIORITY_PROVINCES = new Set([
   'Nghệ An',
 ]);
 
-export function ProvinceLabels({ provinces, showLabels }: ProvinceLabelProps) {
+export function ProvinceLabels({ provinces, showLabels, locale }: ProvinceLabelProps) {
   const labelData = useMemo(() => {
     return provinces
       .filter((p) => PRIORITY_PROVINCES.has(p.name) || p.type === 'Thành phố')
       .map((province) => {
         const centroid = getProvinceCentroid(province);
-        const elevation = province.name === 'Hà Nội' ? 0.15 : 0.12;
+        const elevation = province.name === 'Hà Nội' ? 0.12 : 0.10;
 
         return {
-          name: province.name,
+          name: getProvinceName(province.name, locale),
           position: [centroid.x, elevation, centroid.z] as [number, number, number],
           isPriority: PRIORITY_PROVINCES.has(province.name),
         };
       });
-  }, [provinces]);
+  }, [provinces, locale]);
 
   if (!showLabels) return null;
 
@@ -87,7 +90,7 @@ export function ProvinceLabels({ provinces, showLabels }: ProvinceLabelProps) {
           lockZ={false}
         >
           <Text
-            fontSize={label.isPriority ? 0.08 : 0.06}
+            fontSize={label.isPriority ? 0.07 : 0.05}
             color="#ffffff"
             anchorX="center"
             anchorY="middle"

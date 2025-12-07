@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { MapWrapper } from '@/components/MapWrapper';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import type { Locale } from '@/i18n/config';
@@ -16,7 +17,7 @@ export default async function HomePage({ params }: PageProps) {
   return (
     <main className="relative w-full h-screen overflow-hidden">
       {/* 3D Map Canvas */}
-      <MapWrapper dict={dict} />
+      <MapWrapper dict={dict} locale={locale} />
 
       {/* Title HUD */}
       <div className="fixed top-4 sm:top-8 left-1/2 -translate-x-1/2 text-center z-10 w-full px-16 sm:px-4 sm:w-auto">
@@ -33,13 +34,32 @@ export default async function HomePage({ params }: PageProps) {
         <LanguageSwitcher currentLocale={locale} />
       </div>
 
-      {/* Copyright */}
-      <div className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 z-10">
+      {/* Footer */}
+      <div className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 z-10 flex items-center gap-3 text-xs">
+        <Link
+          href={`/${locale}/about`}
+          className="text-white/60 hover:text-white transition-colors"
+        >
+          {dict.footer.about}
+        </Link>
+        <Link
+          href={`/${locale}/terms`}
+          className="text-white/60 hover:text-white transition-colors"
+        >
+          {dict.footer.terms}
+        </Link>
+        <Link
+          href={`/${locale}/privacy`}
+          className="text-white/60 hover:text-white transition-colors"
+        >
+          {dict.footer.privacy}
+        </Link>
+        <span className="text-white/30">|</span>
         <a
           href="https://khuong.dev"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-white/60 text-xs hover:text-white transition-colors"
+          className="text-white/60 hover:text-white transition-colors"
         >
           © 2025 khuong.dev
         </a>

@@ -64,6 +64,13 @@ html, body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Allow scrolling on info pages */
+html:has(.page-layout), body:has(.page-layout) {
+  overflow: auto;
+  height: auto;
+  min-height: 100%;
+}
+
 /* Glass Panel Effect */
 .glass-panel {
   background-color: rgb(0 0 0 / 0.4);
