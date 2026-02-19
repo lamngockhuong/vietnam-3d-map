@@ -48,8 +48,8 @@ importers:
         specifier: 16.0.7
         version: 16.0.7(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       postprocessing:
-        specifier: 6.38.0
-        version: 6.38.0(three@0.181.2)
+        specifier: 6.38.3
+        version: 6.38.3(three@0.181.2)
       react:
         specifier: 19.2.1
         version: 19.2.1
@@ -1229,6 +1229,7 @@ packages:
   next@16.0.7:
     resolution: {integrity: sha512-3mBRJyPxT4LOxAJI6IsXeFtKfiJUbjCLgvXO02fV8Wy/lIhPvP94Fe7dGhUgHXcQy4sSuYwQNcOLhIfOm0rL0A==}
     engines: {node: '>=20.9.0'}
+    deprecated: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.1.0
@@ -1272,10 +1273,10 @@ packages:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postprocessing@6.38.0:
-    resolution: {integrity: sha512-tisx8XN/PWTL3uXz2mt8bjlMS1wiOUSCK3ixi4zjwUCFmP8XW8hNhXwrxwd2zf2VmCyCQ3GUaLm7GLnkkBbDsQ==}
+  postprocessing@6.38.3:
+    resolution: {integrity: sha512-5qCFp8j62nWL6sSVv/RKuHscQUIV+VMMgWeHLYZQEBpAk7G+r3jA3bSKON7gZjiuxdZ/F4PXj2Jc1oPh/7Eg+g==}
     peerDependencies:
-      three: '>= 0.157.0 < 0.182.0'
+      three: '>= 0.157.0 < 0.184.0'
 
   potpack@1.0.2:
     resolution: {integrity: sha512-choctRBIV9EMT9WGAZHn3V7t0Z2pMQyl0EZE6pFc/6ml3ssw7Dlf/oAOvFwjm1HVsqfQN8GfeFyJ+d8tRzqueQ==}
@@ -2040,8 +2041,8 @@ snapshots:
     dependencies:
       '@react-three/fiber': 9.4.2(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(three@0.181.2)
       maath: 0.6.0(@types/three@0.181.0)(three@0.181.2)
-      n8ao: 1.10.1(postprocessing@6.38.0(three@0.181.2))(three@0.181.2)
-      postprocessing: 6.38.0(three@0.181.2)
+      n8ao: 1.10.1(postprocessing@6.38.3(three@0.181.2))(three@0.181.2)
+      postprocessing: 6.38.3(three@0.181.2)
       react: 19.2.1
       three: 0.181.2
     transitivePeerDependencies:
@@ -2393,9 +2394,9 @@ snapshots:
 
   meshoptimizer@0.22.0: {}
 
-  n8ao@1.10.1(postprocessing@6.38.0(three@0.181.2))(three@0.181.2):
+  n8ao@1.10.1(postprocessing@6.38.3(three@0.181.2))(three@0.181.2):
     dependencies:
-      postprocessing: 6.38.0(three@0.181.2)
+      postprocessing: 6.38.3(three@0.181.2)
       three: 0.181.2
 
   nanoid@3.3.11: {}
@@ -2445,7 +2446,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postprocessing@6.38.0(three@0.181.2):
+  postprocessing@6.38.3(three@0.181.2):
     dependencies:
       three: 0.181.2
 
